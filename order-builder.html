@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chipotle Order Builder</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #a81612; margin-bottom: 10px; text-align: center; font-size: 28px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; }
+        h2 { color: #d4a574; margin: 15px 0 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { color: #fff; margin: 10px 0; font-size: 14px; }
+
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .form-row > * { flex: 1; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 4px; color: #aaa; font-size: 12px; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #333; background: #252525; color: #fff; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #a81612; }
+        textarea { resize: vertical; min-height: 60px; }
+
+        .section { background: #222; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+
+        .option-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .option-btn {
+            padding: 10px 16px; background: #2a2a2a; border: 2px solid #3a3a3a;
+            border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.2s;
+        }
+        .option-btn:hover { border-color: #555; background: #333; }
+        .option-btn.selected { border-color: #a81612; background: #3a2525; color: #fff; }
+
+        .topping-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+        .topping-item {
+            display: flex; align-items: center; gap: 8px;
+            background: #2a2a2a; padding: 8px 12px; border-radius: 6px;
+        }
+        .topping-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #a81612; }
+        .topping-item label { flex: 1; margin: 0; font-size: 13px; color: #ddd; text-transform: none; cursor: pointer; }
+        .topping-item select { width: 80px; padding: 4px; font-size: 11px; }
+
+        .btn {
+            background: #a81612; color: #fff; padding: 12px 24px; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #c41a15; transform: translateY(-1px); }
+        .btn-add { background: #2d7d2d; }
+        .btn-add:hover { background: #3a9a3a; }
+        .btn-secondary { background: #444; }
+        .btn-secondary:hover { background: #555; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+
+        .orders-list { margin-top: 20px; }
+        .order-card {
+            background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px;
+            padding: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+        }
+        .order-card .order-info { flex: 1; }
+        .order-card .order-name { font-weight: 600; color: #d4a574; }
+        .order-card .order-details { font-size: 12px; color: #888; margin-top: 4px; }
+        .order-card .qty-control { display: flex; align-items: center; gap: 8px; }
+        .order-card .qty-control input { width: 50px; text-align: center; padding: 6px; }
+        .order-card .btn-remove { background: #6a2020; padding: 6px 10px; }
+
+        #output {
+            background: #0d0d0d; padding: 15px; border-radius: 8px; margin-top: 15px;
+            font-family: 'Consolas', monospace; font-size: 11px; max-height: 300px;
+            overflow-y: auto; white-space: pre-wrap; border: 1px solid #333;
+        }
+
+        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+
+        .divider { height: 1px; background: #333; margin: 15px 0; }
+
+        .extra-toggle { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .extra-toggle input { width: auto; }
+        .extra-toggle label { margin: 0; color: #aaa; font-size: 12px; }
+
+        .order-count {
+            background: #a81612; color: #fff; padding: 4px 12px; border-radius: 20px;
+            font-size: 14px; font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; }
+            .topping-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chipotle Order Builder</h1>
+        <p class="subtitle">Build orders and export to JSON</p>
+
+        <!-- Customer Info Section -->
+        <div class="section">
+            <h2>Customer Info</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="phone" placeholder="e.g. 5551234567">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="e.g. john@email.com">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Pickup Address</label>
+                <textarea id="address" placeholder="e.g. 123 Main St, City, State 12345"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Pickup Time</label>
+                <input type="datetime-local" id="pickupDateTime">
+            </div>
+        </div>
+
+        <!-- Build Order Section -->
+        <div class="section">
+            <h2>Build Your Order</h2>
+
+            <div class="form-group">
+                <label>Name for this order</label>
+                <input type="text" id="orderName" placeholder="e.g. John, Sarah, etc.">
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Entree Type</h3>
+            <div class="option-group" id="entreeOptions">
+                <span class="option-btn" data-type="bowl">Bowl</span>
+                <span class="option-btn" data-type="burrito">Burrito</span>
+                <span class="option-btn" data-type="quesadilla">Quesadilla</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Protein</h3>
+            <div class="option-group" id="proteinOptions">
+                <span class="option-btn" data-name="Chicken">Chicken</span>
+                <span class="option-btn" data-name="Steak">Steak</span>
+                <span class="option-btn" data-name="Barbacoa">Barbacoa</span>
+                <span class="option-btn" data-name="Carne Asada">Carne Asada</span>
+                <span class="option-btn" data-name="Carnitas">Carnitas</span>
+                <span class="option-btn" data-name="Sofritas">Sofritas</span>
+                <span class="option-btn" data-name="Veggie">Veggie</span>
+            </div>
+            <div class="extra-toggle">
+                <input type="checkbox" id="doubleProtein">
+                <label for="doubleProtein">Double Protein (+$)</label>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Rice</h3>
+            <div class="option-group" id="riceOptions">
+                <span class="option-btn" data-id="CMG-5001" data-name="White Rice">White</span>
+                <span class="option-btn" data-id="CMG-5002" data-name="Brown Rice">Brown</span>
+                <span class="option-btn" data-id="CMG-5003" data-name="No Rice">None</span>
+            </div>
+            <div class="extra-toggle">
+                <input type="checkbox" id="extraRice">
+                <label for="extraRice">Extra Rice</label>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Beans</h3>
+            <div class="option-group" id="beanOptions">
+                <span class="option-btn" data-id="CMG-5051" data-name="Black Beans">Black</span>
+                <span class="option-btn" data-id="CMG-5052" data-name="Pinto Beans">Pinto</span>
+                <span class="option-btn" data-id="CMG-5053" data-name="No Beans">None</span>
+            </div>
+            <div class="extra-toggle">
+                <input type="checkbox" id="extraBeans">
+                <label for="extraBeans">Extra Beans</label>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Toppings</h3>
+            <div class="topping-grid" id="toppings">
+                <div class="topping-item">
+                    <input type="checkbox" id="top-queso" data-id="CMG-1029" data-name="Queso Blanco">
+                    <label for="top-queso">Queso</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-fajita" data-id="CMG-5101" data-name="Fajita Veggies">
+                    <label for="top-fajita">Fajitas</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-pico" data-id="CMG-5201" data-name="Fresh Tomato Salsa">
+                    <label for="top-pico">Pico</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-corn" data-id="CMG-5202" data-name="Roasted Chili-Corn Salsa">
+                    <label for="top-corn">Corn</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-green" data-id="CMG-5203" data-name="Tomatillo-Green Chili Salsa">
+                    <label for="top-green">Green (Med)</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-red" data-id="CMG-5204" data-name="Tomatillo-Red Chili Salsa">
+                    <label for="top-red">Red (Hot)</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-sour" data-id="CMG-5251" data-name="Sour Cream">
+                    <label for="top-sour">Sour Cream</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-cheese" data-id="CMG-5252" data-name="Cheese">
+                    <label for="top-cheese">Cheese</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-lettuce" data-id="CMG-5351" data-name="Romaine Lettuce">
+                    <label for="top-lettuce">Lettuce</label>
+                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-add" onclick="addOrder()">+ Add This Order</button>
+            </div>
+        </div>
+
+        <!-- Orders List -->
+        <div class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Your Orders</h2>
+                <span class="order-count" id="orderCount">0 orders</span>
+            </div>
+            <div class="orders-list" id="ordersList">
+                <p style="color: #666; text-align: center; padding: 20px;">No orders yet. Build an order above and click "Add This Order"</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn" onclick="generateJSON()">Generate JSON</button>
+            <button class="btn btn-add" onclick="copyJSON()">Copy JSON</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <!-- Output -->
+        <div class="section">
+            <h2>Generated JSON</h2>
+            <div id="output">Add orders and click "Generate JSON" to see output...</div>
+        </div>
+    </div>
+
+    <script>
+        let orders = [];
+        let orderIdCounter = 1;
+
+        // Menu ID mappings - VERIFIED against rules.js
+        const menuIds = {
+            bowl: { Chicken: 'CMG-101', Steak: 'CMG-102', Barbacoa: 'CMG-104', 'Carne Asada': 'CMG-108', Carnitas: 'CMG-103', Sofritas: 'CMG-105', Veggie: 'CMG-106' },
+            burrito: { Chicken: 'CMG-1', Steak: 'CMG-2', Barbacoa: 'CMG-4', 'Carne Asada': 'CMG-8', Carnitas: 'CMG-3', Sofritas: 'CMG-5', Veggie: 'CMG-6' },
+            quesadilla: { Chicken: 'CMG-401', Steak: 'CMG-402', Barbacoa: 'CMG-404', 'Carne Asada': 'CMG-409', Carnitas: 'CMG-403', Sofritas: 'CMG-405' }
+        };
+
+        // Extra protein IDs - Note: Veggie has no extra protein option
+        const extraProteinIds = { Chicken: 'CMG-1101', Steak: 'CMG-1102', Barbacoa: 'CMG-1104', 'Carne Asada': 'CMG-1107', Carnitas: 'CMG-1103', Sofritas: 'CMG-1106' };
+
+        // Selection state
+        let selectedEntree = null;
+        let selectedProtein = null;
+        let selectedRice = null;
+        let selectedBeans = null;
+
+        // Option click handlers
+        function setupOptionGroup(containerId, callback) {
+            document.querySelectorAll(`#${containerId} .option-btn`).forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll(`#${containerId} .option-btn`).forEach(e => e.classList.remove('selected'));
+                    el.classList.add('selected');
+                    callback(el);
+                });
+            });
+        }
+
+        setupOptionGroup('entreeOptions', el => selectedEntree = el.dataset.type);
+        setupOptionGroup('proteinOptions', el => selectedProtein = el.dataset.name);
+        setupOptionGroup('riceOptions', el => selectedRice = { id: el.dataset.id, name: el.dataset.name });
+        setupOptionGroup('beanOptions', el => selectedBeans = { id: el.dataset.id, name: el.dataset.name });
+
+        function buildContents() {
+            const contents = [];
+
+            // Double protein (not available for Veggie)
+            if (document.getElementById('doubleProtein').checked && selectedProtein && extraProteinIds[selectedProtein]) {
+                const extraName = selectedProtein === 'Barbacoa' ? 'Extra Beef Barbacoa' : `Extra ${selectedProtein}`;
+                contents.push({
+                    menuItemId: extraProteinIds[selectedProtein],
+                    menuItemName: extraName,
+                    quantity: 1, isUpSell: false, customizationId: null
+                });
+            }
+
+            // Rice (always add, including "No Rice" CMG-5003)
+            if (selectedRice) {
+                contents.push({
+                    menuItemId: selectedRice.id,
+                    menuItemName: selectedRice.name,
+                    quantity: 1, isUpSell: false,
+                    customizationId: (selectedRice.id !== 'CMG-5003' && document.getElementById('extraRice').checked) ? 2 : null
+                });
+            }
+
+            // Beans (don't apply Extra to "No Beans")
+            if (selectedBeans) {
+                contents.push({
+                    menuItemId: selectedBeans.id,
+                    menuItemName: selectedBeans.name,
+                    quantity: 1, isUpSell: false,
+                    customizationId: (selectedBeans.id !== 'CMG-5053' && document.getElementById('extraBeans').checked) ? 2 : null
+                });
+            }
+
+            // Toppings
+            document.querySelectorAll('#toppings .topping-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    const select = item.querySelector('select');
+                    contents.push({
+                        menuItemId: checkbox.dataset.id,
+                        menuItemName: checkbox.dataset.name,
+                        quantity: 1, isUpSell: false,
+                        customizationId: select.value ? parseInt(select.value) : null
+                    });
+                }
+            });
+
+            return contents;
+        }
+
+        function addOrder() {
+            if (!selectedEntree || !selectedProtein || !selectedRice || !selectedBeans) {
+                alert('Please select entree type, protein, rice, and beans');
+                return;
+            }
+
+            // Veggie Quesadilla doesn't exist
+            if (selectedEntree === 'quesadilla' && selectedProtein === 'Veggie') {
+                alert('Veggie Quesadilla is not available. Please choose Bowl or Burrito for Veggie.');
+                return;
+            }
+
+            // Warn if trying to double Veggie (not available)
+            if (selectedProtein === 'Veggie' && document.getElementById('doubleProtein').checked) {
+                alert('Double Protein is not available for Veggie. The order will be added without double protein.');
+                document.getElementById('doubleProtein').checked = false;
+            }
+
+            const orderName = document.getElementById('orderName').value.trim() || 'Customer';
+            // Fix naming: "Barbacoa" should be "Beef Barbacoa" to match Chipotle's official names
+            const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
+            const entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            const order = {
+                id: orderIdCounter++,
+                qty: 1,
+                orderName: orderName,
+                entreeType: selectedEntree,
+                protein: selectedProtein,
+                entreeName: entreeName,
+                menuItemId: menuIds[selectedEntree][selectedProtein],
+                contents: buildContents(),
+                doubleProtein: document.getElementById('doubleProtein').checked,
+                description: buildDescription()
+            };
+
+            orders.push(order);
+            renderOrders();
+            resetOrderForm();
+        }
+
+        function buildDescription() {
+            let parts = [];
+            const displayProtein = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
+            if (document.getElementById('doubleProtein').checked) parts.push('Double ' + displayProtein);
+            else parts.push(displayProtein);
+
+            if (selectedRice && selectedRice.id !== 'CMG-5003') {
+                let r = selectedRice.name.replace(' Rice', '');
+                if (document.getElementById('extraRice').checked) r = 'Extra ' + r;
+                parts.push(r);
+            }
+
+            if (selectedBeans && selectedBeans.id !== 'CMG-5053') {
+                let b = selectedBeans.name.replace(' Beans', '');
+                if (document.getElementById('extraBeans').checked) b = 'Extra ' + b;
+                parts.push(b);
+            }
+
+            document.querySelectorAll('#toppings .topping-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    const label = item.querySelector('label').textContent;
+                    const select = item.querySelector('select');
+                    let mod = '';
+                    if (select.value === '1') mod = 'Light ';
+                    if (select.value === '2') mod = 'Extra ';
+                    if (select.value === '3') mod = label + ' (Side)';
+                    else mod = mod + label;
+                    parts.push(mod);
+                }
+            });
+
+            return parts.join(', ');
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            const countEl = document.getElementById('orderCount');
+
+            const totalQty = orders.reduce((sum, o) => sum + o.qty, 0);
+            countEl.textContent = `${totalQty} order${totalQty !== 1 ? 's' : ''}`;
+
+            if (orders.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No orders yet.</p>';
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="order-card">
+                    <div class="order-info">
+                        <div class="order-name">${order.orderName}: ${order.entreeName}</div>
+                        <div class="order-details">${order.description}</div>
+                    </div>
+                    <div class="qty-control">
+                        <label style="font-size: 12px; color: #888;">Qty:</label>
+                        <input type="number" min="1" value="${order.qty}" onchange="updateQty(${order.id}, this.value)">
+                    </div>
+                    <button class="btn btn-remove btn-small" onclick="removeOrder(${order.id})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function updateQty(id, qty) {
+            const order = orders.find(o => o.id === id);
+            if (order) order.qty = Math.max(1, parseInt(qty) || 1);
+            renderOrders();
+        }
+
+        function removeOrder(id) {
+            orders = orders.filter(o => o.id !== id);
+            renderOrders();
+        }
+
+        function resetOrderForm() {
+            document.querySelectorAll('#entreeOptions .option-btn, #proteinOptions .option-btn').forEach(el => el.classList.remove('selected'));
+            document.getElementById('orderName').value = '';
+            document.getElementById('doubleProtein').checked = false;
+            document.getElementById('extraRice').checked = false;
+            document.getElementById('extraBeans').checked = false;
+            document.querySelectorAll('#toppings input[type="checkbox"]').forEach(el => el.checked = false);
+            document.querySelectorAll('#toppings select').forEach(el => el.value = '');
+            selectedEntree = null;
+            selectedProtein = null;
+            // Keep rice and beans selected for convenience
+        }
+
+        function generateJSON() {
+            if (orders.length === 0) {
+                alert('Add some orders first!');
+                return;
+            }
+
+            const email = document.getElementById('email').value || '';
+            const phone = document.getElementById('phone').value.replace(/\D/g, '') || '';
+            const address = document.getElementById('address').value || '';
+            const pickupInput = document.getElementById('pickupDateTime').value;
+            const pickupDateTime = pickupInput ? pickupInput + ':00' : '';
+
+            const profiles = [];
+            let profileNum = 1;
+
+            orders.forEach(order => {
+                for (let i = 0; i < order.qty; i++) {
+                    const orderFirstName = order.orderName;
+                    const profileName = `${orderFirstName} ${profileNum}`;
+                    profiles.push({
+                        name: profileName,
+                        taskCount: 1,
+                        restaurantId: "",
+                        promoCode: "",
+                        pickupDateTime: pickupDateTime,
+                        bagPickupLocationId: 1,
+                        tipAmount: 0,
+                        firstName: orderFirstName,
+                        email: email,
+                        phoneNumber: phone,
+                        _address: address,
+                        meal: {
+                            mealName: profileName,
+                            entrees: [{
+                                menuItemId: order.menuItemId,
+                                menuItemName: order.entreeName,
+                                quantity: 1,
+                                contents: order.contents
+                            }],
+                            sides: [],
+                            drinks: []
+                        }
+                    });
+                    profileNum++;
+                }
+            });
+
+            const output = { profiles };
+            document.getElementById('output').textContent = JSON.stringify(output, null, 2);
+        }
+
+        function copyJSON() {
+            const text = document.getElementById('output').textContent;
+            if (text.includes('Add orders')) {
+                alert('Generate JSON first!');
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+        }
+
+        function clearAll() {
+            if (orders.length > 0 && !confirm('Clear all orders?')) return;
+            orders = [];
+            orderIdCounter = 1;
+            renderOrders();
+            document.getElementById('output').textContent = 'Add orders and click "Generate JSON" to see output...';
+        }
+
+        // Set default pickup time
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 30);
+        document.getElementById('pickupDateTime').value = now.toISOString().slice(0, 16);
+    </script>
+</body>
+</html>
