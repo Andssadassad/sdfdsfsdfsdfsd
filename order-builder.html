@@ -8,8 +8,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #a81612; margin-bottom: 10px; text-align: center; font-size: 28px; }
-        .subtitle { text-align: center; color: #888; margin-bottom: 20px; }
         h2 { color: #d4a574; margin: 15px 0 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
         h3 { color: #fff; margin: 10px 0; font-size: 14px; }
 
@@ -91,9 +89,6 @@
 </head>
 <body>
     <div class="container">
-        <h1>Chipotle Order Builder</h1>
-        <p class="subtitle">Build orders and export to JSON</p>
-
         <!-- Customer Info Section -->
         <div class="section">
             <h2>Customer Info</h2>
@@ -113,7 +108,7 @@
             </div>
             <div class="form-group">
                 <label>Pickup Time</label>
-                <input type="datetime-local" id="pickupDateTime">
+                <input type="time" id="pickupTime" placeholder="e.g. 5:30 PM">
             </div>
         </div>
 
@@ -480,8 +475,7 @@
             const email = document.getElementById('email').value || '';
             const phone = document.getElementById('phone').value.replace(/\D/g, '') || '';
             const address = document.getElementById('address').value || '';
-            const pickupInput = document.getElementById('pickupDateTime').value;
-            const pickupDateTime = pickupInput ? pickupInput + ':00' : '';
+            const pickupTime = document.getElementById('pickupTime').value || '';
 
             const profiles = [];
             let profileNum = 1;
@@ -495,7 +489,7 @@
                         taskCount: 1,
                         restaurantId: "",
                         promoCode: "",
-                        pickupDateTime: pickupDateTime,
+                        pickupTime: pickupTime,
                         bagPickupLocationId: 1,
                         tipAmount: 0,
                         firstName: orderFirstName,
@@ -539,10 +533,12 @@
             document.getElementById('output').textContent = 'Add orders and click "Generate JSON" to see output...';
         }
 
-        // Set default pickup time
+        // Set default pickup time (30 min from now)
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
-        document.getElementById('pickupDateTime').value = now.toISOString().slice(0, 16);
+        const hours = now.getHours().toString().padStart(2, '0');
+        const mins = now.getMinutes().toString().padStart(2, '0');
+        document.getElementById('pickupTime').value = `${hours}:${mins}`;
     </script>
 </body>
 </html>
