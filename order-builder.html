@@ -85,6 +85,145 @@
             .form-row { flex-direction: column; }
             .topping-grid { grid-template-columns: 1fr; }
         }
+
+        /* Group Management Styles */
+        .group-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .group-bar select, .group-bar input {
+            padding: 8px 12px;
+            min-width: 120px;
+        }
+        .group-bar label {
+            margin: 0;
+            color: #888;
+        }
+
+        .group-section {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            background: #252525;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .group-header:hover {
+            background: #2a2a2a;
+        }
+        .collapse-icon {
+            font-family: monospace;
+            width: 16px;
+            color: #888;
+            transition: transform 0.2s;
+        }
+        .group-name {
+            font-weight: 600;
+            color: #d4a574;
+            flex: 1;
+        }
+        .group-rid {
+            color: #888;
+            font-size: 12px;
+        }
+        .group-count {
+            background: #3a3a3a;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .group-orders {
+            padding: 10px;
+        }
+        .empty-group {
+            color: #555;
+            text-align: center;
+            padding: 15px;
+            font-style: italic;
+        }
+
+        .order-card .order-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .btn-edit {
+            background: #2d5a7d;
+            padding: 6px 10px;
+        }
+        .btn-edit:hover {
+            background: #3a7a9a;
+        }
+        .move-dropdown {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            width: auto;
+            min-width: 80px;
+        }
+
+        .adding-to-indicator {
+            background: #2a3a2a;
+            border: 1px solid #3a5a3a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        .adding-to-indicator strong {
+            color: #7ac47a;
+        }
+
+        .no-groups-prompt {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .no-groups-prompt p {
+            margin-bottom: 15px;
+        }
+
+        .edit-mode-indicator {
+            background: #3a3a2a;
+            border: 1px solid #5a5a3a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .edit-mode-indicator strong {
+            color: #c4c47a;
+        }
+
+        .new-group-form {
+            background: #1a2a1a;
+            border: 1px solid #2a4a2a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .new-group-form .form-row {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -92,6 +231,16 @@
         <!-- Customer Info Section -->
         <div class="section">
             <h2>Customer Info</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Pickup Date</label>
+                    <input type="date" id="pickupDate">
+                </div>
+                <div class="form-group">
+                    <label>Pickup Time</label>
+                    <input type="time" id="pickupTime">
+                </div>
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Phone</label>
@@ -102,19 +251,58 @@
                     <input type="email" id="email" placeholder="e.g. john@email.com">
                 </div>
             </div>
-            <div class="form-group">
-                <label>Pickup Address</label>
-                <textarea id="address" placeholder="e.g. 123 Main St, City, State 12345"></textarea>
+        </div>
+
+        <!-- Group Management Section -->
+        <div class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">Order Groups</h2>
+                <button class="btn btn-add btn-small" id="newGroupToggleBtn" onclick="toggleNewGroupForm()">+ New Group</button>
             </div>
-            <div class="form-group">
-                <label>Pickup Time</label>
-                <input type="time" id="pickupTime" placeholder="e.g. 5:30 PM">
+
+            <!-- Inline New Group Form -->
+            <div id="newGroupForm" class="new-group-form" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Group Name</label>
+                        <input type="text" id="newGroupName" placeholder="e.g. Kevin, Sarah...">
+                    </div>
+                    <div class="form-group">
+                        <label>Restaurant ID</label>
+                        <input type="text" id="newGroupRid" placeholder="e.g. 3258">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; gap: 8px; padding-bottom: 10px;">
+                        <button class="btn btn-add btn-small" onclick="createGroupFromForm()">Create</button>
+                        <button class="btn btn-secondary btn-small" onclick="toggleNewGroupForm()">Cancel</button>
+                    </div>
+                </div>
             </div>
+
+            <div class="group-bar" id="groupBar">
+                <label>Active Group:</label>
+                <select id="activeGroupSelect" onchange="selectGroup(this.value)">
+                    <option value="">-- Select Group --</option>
+                </select>
+                <label>RID:</label>
+                <input type="text" id="activeGroupRid" placeholder="Restaurant ID" onchange="updateActiveGroupRid(this.value)">
+                <button class="btn btn-secondary btn-small" onclick="renameActiveGroup()">Rename</button>
+                <button class="btn btn-remove btn-small" onclick="deleteActiveGroup()">Delete</button>
+            </div>
+            <p id="noGroupsHint" style="color: #666; text-align: center; display: none;">Create a group to start adding orders</p>
         </div>
 
         <!-- Build Order Section -->
         <div class="section">
             <h2>Build Your Order</h2>
+
+            <div id="addingToIndicator" class="adding-to-indicator" style="display: none;">
+                Adding to: <strong id="addingToGroupName">--</strong>
+            </div>
+
+            <div id="editModeIndicator" class="edit-mode-indicator" style="display: none;">
+                <span>Editing: <strong id="editingOrderName">--</strong></span>
+                <button class="btn btn-secondary btn-small" onclick="cancelEdit()">Cancel Edit</button>
+            </div>
 
             <div class="form-group">
                 <label>Name for this order</label>
@@ -178,9 +366,14 @@
             <h3>Toppings</h3>
             <div class="topping-grid" id="toppings">
                 <div class="topping-item">
+                    <input type="checkbox" id="top-guac" data-id="CMG-1001" data-name="Guacamole">
+                    <label for="top-guac">Guac (+$)</label>
+                    <select class="customization"><option value="">Normal</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
                     <input type="checkbox" id="top-queso" data-id="CMG-1029" data-name="Queso Blanco">
-                    <label for="top-queso">Queso</label>
-                    <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                    <label for="top-queso">Queso (+$)</label>
+                    <select class="customization"><option value="">Normal</option><option value="3">Side</option></select>
                 </div>
                 <div class="topping-item">
                     <input type="checkbox" id="top-fajita" data-id="CMG-5101" data-name="Fajita Veggies">
@@ -225,7 +418,7 @@
             </div>
 
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-add" onclick="addOrder()">+ Add This Order</button>
+                <button class="btn btn-add" id="addOrderBtn" onclick="addOrUpdateOrder()">+ Add This Order</button>
             </div>
         </div>
 
@@ -255,8 +448,12 @@
     </div>
 
     <script>
-        let orders = [];
+        // Group-based order management
+        let groups = [];
+        let groupIdCounter = 1;
         let orderIdCounter = 1;
+        let activeGroupId = null;
+        let editingOrder = null; // { orderId, groupId } when editing
 
         // Menu ID mappings - VERIFIED against rules.js
         const menuIds = {
@@ -273,6 +470,214 @@
         let selectedProtein = null;
         let selectedRice = null;
         let selectedBeans = null;
+
+        // =====================
+        // GROUP MANAGEMENT
+        // =====================
+
+        function toggleNewGroupForm() {
+            const form = document.getElementById('newGroupForm');
+            const btn = document.getElementById('newGroupToggleBtn');
+            const isVisible = form.style.display !== 'none';
+
+            if (isVisible) {
+                form.style.display = 'none';
+                btn.textContent = '+ New Group';
+                // Clear inputs
+                document.getElementById('newGroupName').value = '';
+                document.getElementById('newGroupRid').value = '';
+            } else {
+                form.style.display = 'block';
+                btn.textContent = 'Cancel';
+                document.getElementById('newGroupName').focus();
+            }
+        }
+
+        function createGroupFromForm() {
+            const nameInput = document.getElementById('newGroupName');
+            const ridInput = document.getElementById('newGroupRid');
+            const name = nameInput.value.trim();
+            const rid = ridInput.value.trim();
+
+            if (!name) {
+                nameInput.focus();
+                nameInput.style.borderColor = '#a81612';
+                return;
+            }
+            nameInput.style.borderColor = '#333';
+
+            if (!rid) {
+                ridInput.focus();
+                ridInput.style.borderColor = '#a81612';
+                return;
+            }
+            ridInput.style.borderColor = '#333';
+
+            createGroup(name, rid);
+            toggleNewGroupForm();
+        }
+
+        function createGroup(name, rid) {
+            const group = {
+                id: groupIdCounter++,
+                name: name,
+                rid: rid,
+                collapsed: false,
+                orders: []
+            };
+            groups.push(group);
+            activeGroupId = group.id;
+            updateGroupUI();
+            renderGroups();
+            return group.id;
+        }
+
+        function selectGroup(groupId) {
+            groupId = parseInt(groupId);
+            if (!groupId) {
+                activeGroupId = null;
+                updateGroupUI();
+                return;
+            }
+            activeGroupId = groupId;
+            updateGroupUI();
+        }
+
+        function updateActiveGroupRid(rid) {
+            if (!activeGroupId) return;
+            const group = groups.find(g => g.id === activeGroupId);
+            if (group) {
+                group.rid = rid;
+                renderGroups();
+            }
+        }
+
+        function renameActiveGroup() {
+            if (!activeGroupId) {
+                alert('Select a group first');
+                return;
+            }
+            const group = groups.find(g => g.id === activeGroupId);
+            if (!group) return;
+
+            // Create inline rename input
+            const select = document.getElementById('activeGroupSelect');
+            const currentOption = select.options[select.selectedIndex];
+            if (!currentOption || !currentOption.value) return;
+
+            const container = select.parentElement;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = group.name;
+            input.className = 'rename-input';
+            input.style.cssText = 'padding: 8px 12px; min-width: 120px; margin-right: 8px;';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.className = 'btn btn-add btn-small';
+            saveBtn.style.marginRight = '4px';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'X';
+            cancelBtn.className = 'btn btn-secondary btn-small';
+
+            // Hide select, show input
+            select.style.display = 'none';
+            container.insertBefore(cancelBtn, select.nextSibling);
+            container.insertBefore(saveBtn, cancelBtn);
+            container.insertBefore(input, saveBtn);
+            input.focus();
+            input.select();
+
+            const cleanup = () => {
+                input.remove();
+                saveBtn.remove();
+                cancelBtn.remove();
+                select.style.display = '';
+            };
+
+            const save = () => {
+                const newName = input.value.trim();
+                if (newName) {
+                    group.name = newName;
+                    updateGroupUI();
+                    renderGroups();
+                }
+                cleanup();
+            };
+
+            saveBtn.onclick = save;
+            cancelBtn.onclick = cleanup;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') save();
+                if (e.key === 'Escape') cleanup();
+            };
+        }
+
+        function deleteActiveGroup() {
+            if (!activeGroupId) {
+                alert('Select a group first');
+                return;
+            }
+            const group = groups.find(g => g.id === activeGroupId);
+            if (!group) return;
+
+            if (group.orders.length > 0) {
+                if (!confirm(`Delete "${group.name}" and its ${group.orders.length} order(s)?`)) return;
+            }
+
+            groups = groups.filter(g => g.id !== activeGroupId);
+            activeGroupId = groups.length > 0 ? groups[0].id : null;
+            updateGroupUI();
+            renderGroups();
+        }
+
+        function toggleGroupCollapse(groupId) {
+            const group = groups.find(g => g.id === groupId);
+            if (group) {
+                group.collapsed = !group.collapsed;
+                renderGroups();
+            }
+        }
+
+        function updateGroupUI() {
+            const select = document.getElementById('activeGroupSelect');
+            const ridInput = document.getElementById('activeGroupRid');
+            const groupBar = document.getElementById('groupBar');
+            const noGroupsHint = document.getElementById('noGroupsHint');
+            const addingToIndicator = document.getElementById('addingToIndicator');
+            const addingToGroupName = document.getElementById('addingToGroupName');
+
+            // Populate dropdown
+            select.innerHTML = '<option value="">-- Select Group --</option>' +
+                groups.map(g => `<option value="${g.id}" ${g.id === activeGroupId ? 'selected' : ''}>${g.name}</option>`).join('');
+
+            // Show/hide UI based on groups existence
+            if (groups.length === 0) {
+                groupBar.style.display = 'none';
+                noGroupsHint.style.display = 'block';
+                addingToIndicator.style.display = 'none';
+            } else {
+                groupBar.style.display = 'flex';
+                noGroupsHint.style.display = 'none';
+
+                if (activeGroupId) {
+                    const group = groups.find(g => g.id === activeGroupId);
+                    if (group) {
+                        ridInput.value = group.rid;
+                        addingToIndicator.style.display = 'block';
+                        addingToGroupName.textContent = group.name;
+                    }
+                } else {
+                    ridInput.value = '';
+                    addingToIndicator.style.display = 'none';
+                }
+            }
+        }
+
+        function getGroupOrderCount(group) {
+            return group.orders.reduce((sum, o) => sum + o.qty, 0);
+        }
 
         // Option click handlers
         function setupOptionGroup(containerId, callback) {
@@ -328,11 +733,20 @@
                 const checkbox = item.querySelector('input[type="checkbox"]');
                 if (checkbox.checked) {
                     const select = item.querySelector('select');
+                    let itemId = checkbox.dataset.id;
+                    let customization = select.value ? parseInt(select.value) : null;
+
+                    // Queso Blanco: use CMG-4134 for Quesadilla (Addon type, no customization)
+                    if (checkbox.id === 'top-queso' && selectedEntree === 'quesadilla') {
+                        itemId = 'CMG-4134';
+                        customization = null;
+                    }
+
                     contents.push({
-                        menuItemId: checkbox.dataset.id,
+                        menuItemId: itemId,
                         menuItemName: checkbox.dataset.name,
                         quantity: 1, isUpSell: false,
-                        customizationId: select.value ? parseInt(select.value) : null
+                        customizationId: customization
                     });
                 }
             });
@@ -340,7 +754,20 @@
             return contents;
         }
 
+        function addOrUpdateOrder() {
+            if (editingOrder) {
+                updateOrder();
+            } else {
+                addOrder();
+            }
+        }
+
         function addOrder() {
+            if (!activeGroupId) {
+                alert('Please create a group first');
+                return;
+            }
+
             if (!selectedEntree || !selectedProtein || !selectedRice || !selectedBeans) {
                 alert('Please select entree type, protein, rice, and beans');
                 return;
@@ -375,9 +802,168 @@
                 description: buildDescription()
             };
 
-            orders.push(order);
-            renderOrders();
+            const group = groups.find(g => g.id === activeGroupId);
+            if (group) {
+                group.orders.push(order);
+            }
+            renderGroups();
             resetOrderForm();
+        }
+
+        // =====================
+        // EDIT ORDER
+        // =====================
+
+        function editOrder(orderId, groupId) {
+            const group = groups.find(g => g.id === groupId);
+            if (!group) return;
+            const order = group.orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            // Expand group if collapsed
+            if (group.collapsed) {
+                group.collapsed = false;
+                renderGroups();
+            }
+
+            // Set editing state
+            editingOrder = { orderId, groupId };
+
+            // Populate form with order data
+            document.getElementById('orderName').value = order.orderName;
+
+            // Select entree type
+            document.querySelectorAll('#entreeOptions .option-btn').forEach(el => {
+                el.classList.toggle('selected', el.dataset.type === order.entreeType);
+            });
+            selectedEntree = order.entreeType;
+
+            // Select protein
+            document.querySelectorAll('#proteinOptions .option-btn').forEach(el => {
+                el.classList.toggle('selected', el.dataset.name === order.protein);
+            });
+            selectedProtein = order.protein;
+
+            // Set double protein
+            document.getElementById('doubleProtein').checked = order.doubleProtein;
+
+            // Find rice and beans from contents
+            const riceItem = order.contents.find(c => ['CMG-5001', 'CMG-5002', 'CMG-5003'].includes(c.menuItemId));
+            const beansItem = order.contents.find(c => ['CMG-5051', 'CMG-5052', 'CMG-5053'].includes(c.menuItemId));
+
+            // Select rice
+            if (riceItem) {
+                document.querySelectorAll('#riceOptions .option-btn').forEach(el => {
+                    const isSelected = el.dataset.id === riceItem.menuItemId;
+                    el.classList.toggle('selected', isSelected);
+                    if (isSelected) selectedRice = { id: el.dataset.id, name: el.dataset.name };
+                });
+                document.getElementById('extraRice').checked = riceItem.customizationId === 2;
+            }
+
+            // Select beans
+            if (beansItem) {
+                document.querySelectorAll('#beanOptions .option-btn').forEach(el => {
+                    const isSelected = el.dataset.id === beansItem.menuItemId;
+                    el.classList.toggle('selected', isSelected);
+                    if (isSelected) selectedBeans = { id: el.dataset.id, name: el.dataset.name };
+                });
+                document.getElementById('extraBeans').checked = beansItem.customizationId === 2;
+            }
+
+            // Set toppings
+            document.querySelectorAll('#toppings .topping-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const select = item.querySelector('select');
+                const toppingId = checkbox.dataset.id;
+
+                // Check if this topping is in the order (handle queso special case)
+                const contentItem = order.contents.find(c =>
+                    c.menuItemId === toppingId ||
+                    (checkbox.id === 'top-queso' && c.menuItemId === 'CMG-4134')
+                );
+
+                checkbox.checked = !!contentItem;
+                if (contentItem && contentItem.customizationId) {
+                    select.value = contentItem.customizationId.toString();
+                } else {
+                    select.value = '';
+                }
+            });
+
+            // Update UI
+            document.getElementById('editModeIndicator').style.display = 'flex';
+            document.getElementById('editingOrderName').textContent = `${order.orderName}: ${order.entreeName}`;
+            document.getElementById('addOrderBtn').textContent = 'Update Order';
+
+            // Scroll to form
+            document.getElementById('orderName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function updateOrder() {
+            if (!editingOrder) return;
+
+            if (!selectedEntree || !selectedProtein || !selectedRice || !selectedBeans) {
+                alert('Please select entree type, protein, rice, and beans');
+                return;
+            }
+
+            if (selectedEntree === 'quesadilla' && selectedProtein === 'Veggie') {
+                alert('Veggie Quesadilla is not available.');
+                return;
+            }
+
+            if (selectedProtein === 'Veggie' && document.getElementById('doubleProtein').checked) {
+                document.getElementById('doubleProtein').checked = false;
+            }
+
+            const group = groups.find(g => g.id === editingOrder.groupId);
+            if (!group) return;
+            const order = group.orders.find(o => o.id === editingOrder.orderId);
+            if (!order) return;
+
+            // Update order
+            order.orderName = document.getElementById('orderName').value.trim() || 'Customer';
+            order.entreeType = selectedEntree;
+            order.protein = selectedProtein;
+            const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
+            order.entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            order.menuItemId = menuIds[selectedEntree][selectedProtein];
+            order.contents = buildContents();
+            order.doubleProtein = document.getElementById('doubleProtein').checked;
+            order.description = buildDescription();
+
+            cancelEdit();
+            renderGroups();
+        }
+
+        function cancelEdit() {
+            editingOrder = null;
+            document.getElementById('editModeIndicator').style.display = 'none';
+            document.getElementById('addOrderBtn').textContent = '+ Add This Order';
+            resetOrderForm();
+        }
+
+        // =====================
+        // MOVE ORDER
+        // =====================
+
+        function moveOrderToGroup(orderId, fromGroupId, toGroupId) {
+            fromGroupId = parseInt(fromGroupId);
+            toGroupId = parseInt(toGroupId);
+            if (fromGroupId === toGroupId) return;
+
+            const fromGroup = groups.find(g => g.id === fromGroupId);
+            const toGroup = groups.find(g => g.id === toGroupId);
+            if (!fromGroup || !toGroup) return;
+
+            const orderIndex = fromGroup.orders.findIndex(o => o.id === orderId);
+            if (orderIndex === -1) return;
+
+            const [order] = fromGroup.orders.splice(orderIndex, 1);
+            toGroup.orders.push(order);
+
+            renderGroups();
         }
 
         function buildDescription() {
@@ -415,19 +1001,50 @@
             return parts.join(', ');
         }
 
-        function renderOrders() {
+        function renderGroups() {
             const container = document.getElementById('ordersList');
             const countEl = document.getElementById('orderCount');
 
-            const totalQty = orders.reduce((sum, o) => sum + o.qty, 0);
+            // Calculate total across all groups
+            const totalQty = groups.reduce((sum, g) =>
+                sum + g.orders.reduce((oSum, o) => oSum + o.qty, 0), 0);
             countEl.textContent = `${totalQty} order${totalQty !== 1 ? 's' : ''}`;
 
-            if (orders.length === 0) {
-                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No orders yet.</p>';
+            if (groups.length === 0) {
+                container.innerHTML = '<div class="no-groups-prompt"><p>No groups yet.</p><p>Create a group above to start adding orders.</p></div>';
                 return;
             }
 
-            container.innerHTML = orders.map(order => `
+            container.innerHTML = groups.map(group => `
+                <div class="group-section" data-group-id="${group.id}">
+                    <div class="group-header" onclick="toggleGroupCollapse(${group.id})">
+                        <span class="collapse-icon">${group.collapsed ? '▶' : '▼'}</span>
+                        <span class="group-name">${group.name}</span>
+                        <span class="group-rid">RID: ${group.rid || '(not set)'}</span>
+                        <span class="group-count">${getGroupOrderCount(group)} order${getGroupOrderCount(group) !== 1 ? 's' : ''}</span>
+                    </div>
+                    ${!group.collapsed ? `
+                        <div class="group-orders">
+                            ${group.orders.length === 0
+                                ? '<p class="empty-group">No orders in this group yet</p>'
+                                : group.orders.map(order => renderOrderCard(order, group.id)).join('')
+                            }
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderOrderCard(order, groupId) {
+            const otherGroups = groups.filter(g => g.id !== groupId);
+            const moveOptions = otherGroups.length > 0
+                ? `<select class="move-dropdown" onchange="moveOrderToGroup(${order.id}, ${groupId}, this.value); this.value=''">
+                    <option value="">Move to...</option>
+                    ${otherGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+                   </select>`
+                : '';
+
+            return `
                 <div class="order-card">
                     <div class="order-info">
                         <div class="order-name">${order.orderName}: ${order.entreeName}</div>
@@ -435,22 +1052,32 @@
                     </div>
                     <div class="qty-control">
                         <label style="font-size: 12px; color: #888;">Qty:</label>
-                        <input type="number" min="1" value="${order.qty}" onchange="updateQty(${order.id}, this.value)">
+                        <input type="number" min="1" value="${order.qty}" onchange="updateQty(${order.id}, ${groupId}, this.value)">
                     </div>
-                    <button class="btn btn-remove btn-small" onclick="removeOrder(${order.id})">Remove</button>
+                    <div class="order-actions">
+                        <button class="btn btn-edit btn-small" onclick="editOrder(${order.id}, ${groupId})">Edit</button>
+                        ${moveOptions}
+                        <button class="btn btn-remove btn-small" onclick="removeOrder(${order.id}, ${groupId})">X</button>
+                    </div>
                 </div>
-            `).join('');
+            `;
         }
 
-        function updateQty(id, qty) {
-            const order = orders.find(o => o.id === id);
-            if (order) order.qty = Math.max(1, parseInt(qty) || 1);
-            renderOrders();
+        function updateQty(orderId, groupId, qty) {
+            const group = groups.find(g => g.id === groupId);
+            if (group) {
+                const order = group.orders.find(o => o.id === orderId);
+                if (order) order.qty = Math.max(1, parseInt(qty) || 1);
+            }
+            renderGroups();
         }
 
-        function removeOrder(id) {
-            orders = orders.filter(o => o.id !== id);
-            renderOrders();
+        function removeOrder(orderId, groupId) {
+            const group = groups.find(g => g.id === groupId);
+            if (group) {
+                group.orders = group.orders.filter(o => o.id !== orderId);
+            }
+            renderGroups();
         }
 
         function resetOrderForm() {
@@ -467,35 +1094,57 @@
         }
 
         function generateJSON() {
-            if (orders.length === 0) {
+            // Collect all orders from all groups
+            const allOrders = [];
+            let missingRid = false;
+
+            groups.forEach(group => {
+                if (!group.rid) {
+                    missingRid = true;
+                }
+                group.orders.forEach(order => {
+                    allOrders.push({
+                        ...order,
+                        groupRid: group.rid,
+                        groupName: group.name
+                    });
+                });
+            });
+
+            if (allOrders.length === 0) {
                 alert('Add some orders first!');
                 return;
             }
 
+            if (missingRid) {
+                alert('Some groups are missing Restaurant ID. Please set RID for all groups.');
+                return;
+            }
+
+            const pickupDate = document.getElementById('pickupDate').value || '';
+            const pickupTime = document.getElementById('pickupTime').value || '';
+            const pickupDateTime = (pickupDate && pickupTime) ? `${pickupDate}T${pickupTime}:00` : '';
             const email = document.getElementById('email').value || '';
             const phone = document.getElementById('phone').value.replace(/\D/g, '') || '';
-            const address = document.getElementById('address').value || '';
-            const pickupTime = document.getElementById('pickupTime').value || '';
 
             const profiles = [];
             let profileNum = 1;
 
-            orders.forEach(order => {
+            allOrders.forEach(order => {
                 for (let i = 0; i < order.qty; i++) {
                     const orderFirstName = order.orderName;
                     const profileName = `${orderFirstName} ${profileNum}`;
                     profiles.push({
                         name: profileName,
                         taskCount: 1,
-                        restaurantId: "",
+                        restaurantId: order.groupRid,
                         promoCode: "",
-                        pickupTime: pickupTime,
+                        pickupDateTime: pickupDateTime,
                         bagPickupLocationId: 1,
                         tipAmount: 0,
                         firstName: orderFirstName,
                         email: email,
                         phoneNumber: phone,
-                        _address: address,
                         meal: {
                             mealName: profileName,
                             entrees: [{
@@ -526,19 +1175,28 @@
         }
 
         function clearAll() {
-            if (orders.length > 0 && !confirm('Clear all orders?')) return;
-            orders = [];
+            const totalOrders = groups.reduce((sum, g) => sum + g.orders.length, 0);
+            if (totalOrders > 0 && !confirm('Clear all groups and orders?')) return;
+            groups = [];
+            groupIdCounter = 1;
             orderIdCounter = 1;
-            renderOrders();
+            activeGroupId = null;
+            editingOrder = null;
+            cancelEdit();
+            updateGroupUI();
+            renderGroups();
             document.getElementById('output').textContent = 'Add orders and click "Generate JSON" to see output...';
         }
 
-        // Set default pickup time (30 min from now)
+        // Set default pickup date/time (30 min from now)
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
-        const hours = now.getHours().toString().padStart(2, '0');
-        const mins = now.getMinutes().toString().padStart(2, '0');
-        document.getElementById('pickupTime').value = `${hours}:${mins}`;
+        document.getElementById('pickupDate').value = now.toISOString().slice(0, 10);
+        document.getElementById('pickupTime').value = now.toTimeString().slice(0, 5);
+
+        // Initialize UI
+        updateGroupUI();
+        renderGroups();
     </script>
 </body>
 </html>
