@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chipotle Order Builder</title>
+    <title>Order Builder</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
@@ -831,7 +831,6 @@
             }
 
             const orderName = document.getElementById('orderName').value.trim() || 'Customer';
-            // Fix naming: "Barbacoa" should be "Beef Barbacoa" to match Chipotle's official names
             const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
             const entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
             const order = {
