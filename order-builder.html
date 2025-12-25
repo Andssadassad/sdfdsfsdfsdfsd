@@ -330,6 +330,7 @@
             <div class="option-group" id="entreeOptions">
                 <span class="option-btn" data-type="bowl">Bowl</span>
                 <span class="option-btn" data-type="burrito">Burrito</span>
+                <span class="option-btn" data-type="salad">Salad</span>
                 <span class="option-btn" data-type="quesadilla">Quesadilla</span>
             </div>
 
@@ -474,6 +475,7 @@
         const menuIds = {
             bowl: { Chicken: 'CMG-101', Steak: 'CMG-102', Barbacoa: 'CMG-104', 'Carne Asada': 'CMG-108', Carnitas: 'CMG-103', Sofritas: 'CMG-105', Veggie: 'CMG-106' },
             burrito: { Chicken: 'CMG-1', Steak: 'CMG-2', Barbacoa: 'CMG-4', 'Carne Asada': 'CMG-8', Carnitas: 'CMG-3', Sofritas: 'CMG-5', Veggie: 'CMG-6' },
+            salad: { Chicken: 'CMG-301', Steak: 'CMG-302', Barbacoa: 'CMG-304', 'Carne Asada': 'CMG-308', Carnitas: 'CMG-303', Sofritas: 'CMG-305', Veggie: 'CMG-306' },
             quesadilla: { Chicken: 'CMG-401', Steak: 'CMG-402', Barbacoa: 'CMG-404', 'Carne Asada': 'CMG-409', Carnitas: 'CMG-403', Sofritas: 'CMG-405' }
         };
 
@@ -830,6 +832,12 @@
                 document.getElementById('doubleProtein').checked = false;
             }
 
+            // Double Protein is not available for Quesadillas
+            if (selectedEntree === 'quesadilla' && document.getElementById('doubleProtein').checked) {
+                alert('Double Protein is not available for Quesadillas. The order will be added without double protein.');
+                document.getElementById('doubleProtein').checked = false;
+            }
+
             const orderName = document.getElementById('orderName').value.trim() || 'Customer';
             const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
             const entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
@@ -958,6 +966,12 @@
             }
 
             if (selectedProtein === 'Veggie' && document.getElementById('doubleProtein').checked) {
+                document.getElementById('doubleProtein').checked = false;
+            }
+
+            // Double Protein is not available for Quesadillas
+            if (selectedEntree === 'quesadilla' && document.getElementById('doubleProtein').checked) {
+                alert('Double Protein is not available for Quesadillas. The order will be updated without double protein.');
                 document.getElementById('doubleProtein').checked = false;
             }
 
