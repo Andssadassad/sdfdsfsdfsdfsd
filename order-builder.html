@@ -28,6 +28,9 @@
         }
         .option-btn:hover { border-color: #555; background: #333; }
         .option-btn.selected { border-color: #a81612; background: #3a2525; color: #fff; }
+        .option-btn.disabled { opacity: 0.4; pointer-events: none; }
+        .option-btn-small { padding: 6px 12px; font-size: 11px; }
+        .option-btn-multi { padding: 8px 14px; font-size: 12px; }
 
         .topping-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
         .topping-item {
@@ -264,7 +267,7 @@
                     </div>
                     <div class="form-group">
                         <label>Pickup Time</label>
-                        <input type="time" id="newGroupPickupTime">
+                        <input type="time" id="newGroupPickupTime" min="09:00" max="23:00" step="600" onchange="validatePickupTime(this)">
                     </div>
                     <div style="display: flex; align-items: flex-end; gap: 8px; padding-bottom: 10px;">
                         <button class="btn btn-add btn-small" onclick="createGroupFromForm()">Create</button>
@@ -299,7 +302,7 @@
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Pickup Time</label>
-                        <input type="time" id="activeGroupPickupTime" onchange="updateActiveGroupField('pickupTime', this.value)">
+                        <input type="time" id="activeGroupPickupTime" min="09:00" max="23:00" step="600" onchange="validatePickupTime(this); updateActiveGroupField('pickupTime', this.value)">
                     </div>
                 </div>
             </div>
@@ -331,6 +334,7 @@
                 <span class="option-btn" data-type="bowl">Bowl</span>
                 <span class="option-btn" data-type="burrito">Burrito</span>
                 <span class="option-btn" data-type="salad">Salad</span>
+                <span class="option-btn" data-type="tacos">Tacos (3)</span>
                 <span class="option-btn" data-type="quesadilla">Quesadilla</span>
             </div>
 
@@ -346,47 +350,240 @@
                 <span class="option-btn" data-name="Sofritas">Sofritas</span>
                 <span class="option-btn" data-name="Veggie">Veggie</span>
             </div>
-            <div class="extra-toggle">
-                <input type="checkbox" id="doubleProtein">
-                <label for="doubleProtein">Double Protein (+$)</label>
+
+            <!-- Protein options: Standard, Double, or Half & Half -->
+            <div id="proteinExtrasSection" style="margin-top: 10px;">
+                <div class="extra-toggle">
+                    <input type="radio" name="proteinOption" id="proteinNormal" value="normal" checked onchange="updateSecondProteinVisibility()">
+                    <label for="proteinNormal">Standard</label>
+                </div>
+                <div class="extra-toggle" id="doubleProteinToggle">
+                    <input type="radio" name="proteinOption" id="proteinDouble" value="double" onchange="updateSecondProteinVisibility()">
+                    <label for="proteinDouble">Double Protein (+$)</label>
+                </div>
+                <div class="extra-toggle" id="halfProteinToggle">
+                    <input type="radio" name="proteinOption" id="proteinHalf" value="half" onchange="updateSecondProteinVisibility()">
+                    <label for="proteinHalf">Half & Half (add second meat)</label>
+                </div>
+
+                <!-- Second protein selector for Half & Half -->
+                <div id="secondProteinSection" style="display: none; margin-top: 8px; margin-left: 24px; padding: 10px; background: #1a1a1a; border-radius: 6px;">
+                    <label style="font-size: 12px; color: #aaa; margin-bottom: 6px; display: block;">Select second protein:</label>
+                    <div class="option-group" id="secondProteinOptions">
+                        <span class="option-btn option-btn-small" data-name="Chicken">Chicken</span>
+                        <span class="option-btn option-btn-small" data-name="Steak">Steak</span>
+                        <span class="option-btn option-btn-small" data-name="Barbacoa">Barbacoa</span>
+                        <span class="option-btn option-btn-small" data-name="Carne Asada">Carne Asada</span>
+                        <span class="option-btn option-btn-small" data-name="Carnitas">Carnitas</span>
+                        <span class="option-btn option-btn-small" data-name="Sofritas">Sofritas</span>
+                    </div>
+                </div>
             </div>
 
             <div class="divider"></div>
 
-            <h3>Rice</h3>
-            <div class="option-group" id="riceOptions">
-                <span class="option-btn" data-id="CMG-5001" data-name="White Rice">White</span>
-                <span class="option-btn" data-id="CMG-5002" data-name="Brown Rice">Brown</span>
-                <span class="option-btn" data-id="CMG-5003" data-name="No Rice">None</span>
-            </div>
-            <div class="extra-toggle">
-                <input type="checkbox" id="extraRice">
-                <label for="extraRice">Extra Rice</label>
+            <!-- Rice Section (hidden for quesadillas) -->
+            <div id="riceSection">
+                <h3>Rice</h3>
+                <div id="riceNormalOptions" class="option-group">
+                    <span class="option-btn" data-id="CMG-5001" data-name="White Rice">White</span>
+                    <span class="option-btn" data-id="CMG-5002" data-name="Brown Rice">Brown</span>
+                    <span class="option-btn" data-id="CMG-5003" data-name="No Rice">None</span>
+                </div>
+
+                <div class="extra-toggle">
+                    <input type="checkbox" id="halfHalfRice" onchange="toggleHalfRice()">
+                    <label for="halfHalfRice">Half & Half Rice</label>
+                </div>
+
+                <!-- Half & Half rice selection (hidden by default) -->
+                <div id="riceHalfOptions" style="display: none; margin-top: 8px; margin-left: 24px;">
+                    <label style="font-size: 11px; color: #888;">Select two rice types:</label>
+                    <div class="option-group" style="margin-top: 4px;">
+                        <span class="option-btn option-btn-multi" data-id="CMG-5001" data-name="White Rice" onclick="toggleRiceHalfSelection(this)">Half White</span>
+                        <span class="option-btn option-btn-multi" data-id="CMG-5002" data-name="Brown Rice" onclick="toggleRiceHalfSelection(this)">Half Brown</span>
+                    </div>
+                </div>
+
+                <!-- Standard modifiers (hidden when half & half) -->
+                <div id="riceModifiers">
+                    <div class="extra-toggle">
+                        <input type="checkbox" id="lightRice" onchange="if(this.checked) document.getElementById('extraRice').checked=false">
+                        <label for="lightRice">Light Rice</label>
+                    </div>
+                    <div class="extra-toggle">
+                        <input type="checkbox" id="extraRice" onchange="if(this.checked) document.getElementById('lightRice').checked=false">
+                        <label for="extraRice">Extra Rice</label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
             </div>
 
-            <div class="divider"></div>
+            <!-- Beans Section (hidden for quesadillas) -->
+            <div id="beansSection">
+                <h3>Beans</h3>
+                <div id="beansNormalOptions" class="option-group">
+                    <span class="option-btn" data-id="CMG-5051" data-name="Black Beans">Black</span>
+                    <span class="option-btn" data-id="CMG-5052" data-name="Pinto Beans">Pinto</span>
+                    <span class="option-btn" data-id="CMG-5053" data-name="No Beans">None</span>
+                </div>
 
-            <h3>Beans</h3>
-            <div class="option-group" id="beanOptions">
-                <span class="option-btn" data-id="CMG-5051" data-name="Black Beans">Black</span>
-                <span class="option-btn" data-id="CMG-5052" data-name="Pinto Beans">Pinto</span>
-                <span class="option-btn" data-id="CMG-5053" data-name="No Beans">None</span>
+                <div class="extra-toggle">
+                    <input type="checkbox" id="halfHalfBeans" onchange="toggleHalfBeans()">
+                    <label for="halfHalfBeans">Half & Half Beans</label>
+                </div>
+
+                <!-- Half & Half beans selection (hidden by default) -->
+                <div id="beansHalfOptions" style="display: none; margin-top: 8px; margin-left: 24px;">
+                    <label style="font-size: 11px; color: #888;">Select two bean types:</label>
+                    <div class="option-group" style="margin-top: 4px;">
+                        <span class="option-btn option-btn-multi" data-id="CMG-5051" data-name="Black Beans" onclick="toggleBeansHalfSelection(this)">Half Black</span>
+                        <span class="option-btn option-btn-multi" data-id="CMG-5052" data-name="Pinto Beans" onclick="toggleBeansHalfSelection(this)">Half Pinto</span>
+                    </div>
+                </div>
+
+                <!-- Standard modifiers (hidden when half & half) -->
+                <div id="beansModifiers">
+                    <div class="extra-toggle">
+                        <input type="checkbox" id="lightBeans" onchange="if(this.checked) document.getElementById('extraBeans').checked=false">
+                        <label for="lightBeans">Light Beans</label>
+                    </div>
+                    <div class="extra-toggle">
+                        <input type="checkbox" id="extraBeans" onchange="if(this.checked) document.getElementById('lightBeans').checked=false">
+                        <label for="extraBeans">Extra Beans</label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
             </div>
-            <div class="extra-toggle">
-                <input type="checkbox" id="extraBeans">
-                <label for="extraBeans">Extra Beans</label>
+
+            <!-- Quesadilla Sides Section (hidden by default, shown for quesadillas) -->
+            <div id="quesadillaSidesSection" style="display: none;">
+                <h3>Included Sides <span id="dipCounter" style="font-size: 12px; color: #888; font-weight: normal;">(0/3 selected)</span></h3>
+                <p style="font-size: 11px; color: #666; margin-bottom: 10px;">Select up to 3 sides included with your quesadilla</p>
+
+                <div class="topping-grid" id="quesadillaSides">
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-pico" data-id="CMG-5201" data-name="Fresh Tomato Salsa" onchange="updateDipCount()">
+                        <label for="dip-pico">Pico</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-corn" data-id="CMG-5202" data-name="Roasted Chili-Corn Salsa" onchange="updateDipCount()">
+                        <label for="dip-corn">Corn Salsa</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-green" data-id="CMG-5203" data-name="Tomatillo-Green Chili Salsa" onchange="updateDipCount()">
+                        <label for="dip-green">Green (Med)</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-red" data-id="CMG-5204" data-name="Tomatillo-Red Chili Salsa" onchange="updateDipCount()">
+                        <label for="dip-red">Red (Hot)</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-sour" data-id="CMG-5251" data-name="Sour Cream" onchange="updateDipCount()">
+                        <label for="dip-sour">Sour Cream</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-vinaigrette" data-id="CMG-5354" data-name="Chipotle-Honey Vinaigrette" onchange="updateDipCount()">
+                        <label for="dip-vinaigrette">Vinaigrette</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-white-rice" data-id="CMG-5001" data-name="White Rice" onchange="updateDipCount()">
+                        <label for="dip-white-rice">White Rice</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-brown-rice" data-id="CMG-5002" data-name="Brown Rice" onchange="updateDipCount()">
+                        <label for="dip-brown-rice">Brown Rice</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-black-beans" data-id="CMG-5051" data-name="Black Beans" onchange="updateDipCount()">
+                        <label for="dip-black-beans">Black Beans</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="dip-pinto-beans" data-id="CMG-5052" data-name="Pinto Beans" onchange="updateDipCount()">
+                        <label for="dip-pinto-beans">Pinto Beans</label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
             </div>
 
-            <div class="divider"></div>
+            <!-- Taco Section (hidden by default, shown for tacos) -->
+            <div id="tacoSection" style="display: none;">
+                <h3>Tortilla (Required)</h3>
+                <div class="option-group" id="tortillaOptions">
+                    <span class="option-btn" data-id="CMG-5501" data-name="Soft Flour Tortilla">Soft Flour</span>
+                    <span class="option-btn" data-id="CMG-5503" data-name="Crispy Corn Tortilla">Crispy Corn</span>
+                </div>
 
-            <h3>Toppings</h3>
+                <div class="divider"></div>
+
+                <h3>Toppings <span id="tacoToppingCounter" style="font-size: 12px; color: #888; font-weight: normal;">(0/5 selected, min 1)</span></h3>
+                <p style="font-size: 11px; color: #666; margin-bottom: 10px;">Select 1-5 toppings for your tacos</p>
+
+                <div class="topping-grid" id="tacoToppings">
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-pico" data-id="CMG-5201" data-name="Fresh Tomato Salsa" onchange="updateTacoToppingCount()">
+                        <label for="taco-pico">Pico</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-corn" data-id="CMG-5202" data-name="Roasted Chili-Corn Salsa" onchange="updateTacoToppingCount()">
+                        <label for="taco-corn">Corn Salsa</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-green" data-id="CMG-5203" data-name="Tomatillo-Green Chili Salsa" onchange="updateTacoToppingCount()">
+                        <label for="taco-green">Green (Med)</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-red" data-id="CMG-5204" data-name="Tomatillo-Red Chili Salsa" onchange="updateTacoToppingCount()">
+                        <label for="taco-red">Red (Hot)</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-sour" data-id="CMG-5251" data-name="Sour Cream" onchange="updateTacoToppingCount()">
+                        <label for="taco-sour">Sour Cream</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-cheese" data-id="CMG-5252" data-name="Cheese" onchange="updateTacoToppingCount()">
+                        <label for="taco-cheese">Cheese</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-lettuce" data-id="CMG-5351" data-name="Romaine Lettuce" onchange="updateTacoToppingCount()">
+                        <label for="taco-lettuce">Lettuce</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-fajita" data-id="CMG-5101" data-name="Fajita Veggies" onchange="updateTacoToppingCount()">
+                        <label for="taco-fajita">Fajitas</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-white-rice" data-id="CMG-5001" data-name="White Rice" onchange="updateTacoToppingCount()">
+                        <label for="taco-white-rice">White Rice</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-brown-rice" data-id="CMG-5002" data-name="Brown Rice" onchange="updateTacoToppingCount()">
+                        <label for="taco-brown-rice">Brown Rice</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-black-beans" data-id="CMG-5051" data-name="Black Beans" onchange="updateTacoToppingCount()">
+                        <label for="taco-black-beans">Black Beans</label>
+                    </div>
+                    <div class="topping-item">
+                        <input type="checkbox" id="taco-pinto-beans" data-id="CMG-5052" data-name="Pinto Beans" onchange="updateTacoToppingCount()">
+                        <label for="taco-pinto-beans">Pinto Beans</label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+            </div>
+
+            <h3 id="toppingsHeader">Toppings</h3>
             <div class="topping-grid" id="toppings">
-                <div class="topping-item">
+                <div class="topping-item" data-quesadilla="true">
                     <input type="checkbox" id="top-guac" data-id="CMG-1001" data-name="Guacamole">
                     <label for="top-guac">Guac (+$)</label>
                     <select class="customization"><option value="">Normal</option><option value="3">Side</option></select>
                 </div>
-                <div class="topping-item">
+                <div class="topping-item" data-quesadilla="true">
                     <input type="checkbox" id="top-queso" data-id="CMG-1029" data-name="Queso Blanco">
                     <label for="top-queso">Queso (+$)</label>
                     <select class="customization"><option value="">Normal</option><option value="3">Side</option></select>
@@ -430,6 +627,11 @@
                     <input type="checkbox" id="top-lettuce" data-id="CMG-5351" data-name="Romaine Lettuce">
                     <label for="top-lettuce">Lettuce</label>
                     <select class="customization"><option value="">Normal</option><option value="1">Light</option><option value="2">Extra</option><option value="3">Side</option></select>
+                </div>
+                <div class="topping-item">
+                    <input type="checkbox" id="top-vinaigrette" data-id="CMG-5354" data-name="Chipotle-Honey Vinaigrette">
+                    <label for="top-vinaigrette">Vinaigrette</label>
+                    <select class="customization" disabled style="opacity:0.5"><option value="">Normal</option></select>
                 </div>
             </div>
 
@@ -476,17 +678,124 @@
             bowl: { Chicken: 'CMG-101', Steak: 'CMG-102', Barbacoa: 'CMG-104', 'Carne Asada': 'CMG-108', Carnitas: 'CMG-103', Sofritas: 'CMG-105', Veggie: 'CMG-106' },
             burrito: { Chicken: 'CMG-1', Steak: 'CMG-2', Barbacoa: 'CMG-4', 'Carne Asada': 'CMG-8', Carnitas: 'CMG-3', Sofritas: 'CMG-5', Veggie: 'CMG-6' },
             salad: { Chicken: 'CMG-301', Steak: 'CMG-302', Barbacoa: 'CMG-304', 'Carne Asada': 'CMG-308', Carnitas: 'CMG-303', Sofritas: 'CMG-305', Veggie: 'CMG-306' },
+            tacos: { Chicken: 'CMG-201', Steak: 'CMG-202', Barbacoa: 'CMG-204', 'Carne Asada': 'CMG-208', Carnitas: 'CMG-203', Sofritas: 'CMG-205', Veggie: 'CMG-206' },
             quesadilla: { Chicken: 'CMG-401', Steak: 'CMG-402', Barbacoa: 'CMG-404', 'Carne Asada': 'CMG-409', Carnitas: 'CMG-403', Sofritas: 'CMG-405' }
         };
 
         // Extra protein IDs - Note: Veggie has no extra protein option
         const extraProteinIds = { Chicken: 'CMG-1101', Steak: 'CMG-1102', Barbacoa: 'CMG-1104', 'Carne Asada': 'CMG-1107', Carnitas: 'CMG-1103', Sofritas: 'CMG-1106' };
 
+        // Half Portion IDs - for half & half protein combinations
+        const halfPortionIds = {
+            Chicken: 'CMG-5601',
+            Steak: 'CMG-5602',
+            Carnitas: 'CMG-5603',
+            Barbacoa: 'CMG-5604',
+            Sofritas: 'CMG-5605',
+            'Carne Asada': 'CMG-5607'
+        };
+
+        // Half Portion display names
+        const halfPortionNames = {
+            Chicken: 'Half Chicken',
+            Steak: 'Half Steak',
+            Carnitas: 'Half Carnitas',
+            Barbacoa: 'Half Beef Barbacoa',
+            Sofritas: 'Half Sofritas',
+            'Carne Asada': 'Half Carne Asada'
+        };
+
+        // Tortilla IDs for tacos
+        const tortillaIds = {
+            'Soft Flour': 'CMG-5501',
+            'Crispy Corn': 'CMG-5503'
+        };
+
         // Selection state
         let selectedEntree = null;
         let selectedProtein = null;
+        let selectedSecondProtein = null;  // For half & half proteins
         let selectedRice = null;
         let selectedBeans = null;
+        let selectedRiceHalf = [];  // For half & half rice (array of up to 2)
+        let selectedBeansHalf = []; // For half & half beans (array of up to 2)
+        let selectedTortilla = null; // For tacos
+
+        // =====================
+        // STRING SANITIZATION
+        // =====================
+
+        // Sanitize string for JSON output - removes problematic characters
+        function sanitizeString(str) {
+            if (!str) return '';
+            return String(str)
+                .trim()
+                .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+                .replace(/\\/g, '\\\\') // Escape backslashes first
+                .replace(/"/g, '\\"'); // Escape quotes
+        }
+
+        // Sanitize email - allow only valid email characters
+        function sanitizeEmail(email) {
+            if (!email) return '';
+            return String(email)
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9.@_+-]/g, ''); // Only allow valid email characters
+        }
+
+        // Sanitize phone - digits only
+        function sanitizePhone(phone) {
+            if (!phone) return '';
+            return String(phone).replace(/\D/g, '');
+        }
+
+        // =====================
+        // TIME VALIDATION
+        // =====================
+
+        // Validate pickup time: 9AM-11PM, 10-minute intervals
+        function validatePickupTime(input) {
+            if (!input.value) return;
+
+            let [hours, minutes] = input.value.split(':').map(Number);
+
+            // Enforce 9AM-11PM (09:00 to 23:00)
+            if (hours < 9) {
+                hours = 9;
+                minutes = 0;
+            } else if (hours >= 23) {
+                hours = 23;
+                minutes = 0;
+            }
+
+            // Round to nearest 10-minute interval
+            const remainder = minutes % 10;
+            if (remainder !== 0) {
+                // Round to nearest (if remainder >= 5, round up; else round down)
+                if (remainder >= 5) {
+                    minutes = minutes + (10 - remainder);
+                } else {
+                    minutes = minutes - remainder;
+                }
+                // Handle overflow
+                if (minutes >= 60) {
+                    minutes = 0;
+                    hours++;
+                    // If rounding pushed us past 11PM, cap at 11PM
+                    if (hours > 23) {
+                        hours = 23;
+                        minutes = 0;
+                    }
+                }
+            }
+
+            // Format and set the value
+            const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            if (input.value !== formattedTime) {
+                input.value = formattedTime;
+            }
+        }
 
         // =====================
         // GROUP MANAGEMENT
@@ -737,51 +1046,425 @@
             });
         }
 
-        setupOptionGroup('entreeOptions', el => selectedEntree = el.dataset.type);
-        setupOptionGroup('proteinOptions', el => selectedProtein = el.dataset.name);
-        setupOptionGroup('riceOptions', el => selectedRice = { id: el.dataset.id, name: el.dataset.name });
-        setupOptionGroup('beanOptions', el => selectedBeans = { id: el.dataset.id, name: el.dataset.name });
+        setupOptionGroup('entreeOptions', el => {
+            selectedEntree = el.dataset.type;
+            updateProteinOptionsVisibility();
+            updateQuesadillaUI();
+            updateTacoUI();
+        });
+        setupOptionGroup('proteinOptions', el => {
+            selectedProtein = el.dataset.name;
+            updateProteinOptionsVisibility();
+        });
+        setupOptionGroup('riceNormalOptions', el => selectedRice = { id: el.dataset.id, name: el.dataset.name });
+        setupOptionGroup('beansNormalOptions', el => selectedBeans = { id: el.dataset.id, name: el.dataset.name });
+
+        // Setup second protein options for half & half
+        setupOptionGroup('secondProteinOptions', el => {
+            selectedSecondProtein = el.dataset.name;
+        });
+
+        // Setup tortilla options for tacos
+        setupOptionGroup('tortillaOptions', el => {
+            selectedTortilla = { id: el.dataset.id, name: el.dataset.name };
+        });
+
+        // Show/hide second protein section based on radio selection
+        function updateSecondProteinVisibility() {
+            const proteinOption = document.querySelector('input[name="proteinOption"]:checked')?.value || 'normal';
+            const secondSection = document.getElementById('secondProteinSection');
+
+            if (proteinOption === 'half') {
+                secondSection.style.display = 'block';
+            } else {
+                secondSection.style.display = 'none';
+                selectedSecondProtein = null;
+                document.querySelectorAll('#secondProteinOptions .option-btn').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
+        }
+
+        // Hide protein options based on entree type and protein selection
+        function updateProteinOptionsVisibility() {
+            const doubleToggle = document.getElementById('doubleProteinToggle');
+            const halfToggle = document.getElementById('halfProteinToggle');
+            const isQuesadilla = selectedEntree === 'quesadilla';
+            const isTacos = selectedEntree === 'tacos';
+            const isVeggie = selectedProtein === 'Veggie';
+
+            // Veggie: hide both double and half options
+            if (isVeggie) {
+                doubleToggle.style.display = 'none';
+                halfToggle.style.display = 'none';
+                document.getElementById('proteinNormal').checked = true;
+                updateSecondProteinVisibility();
+                return;
+            }
+
+            // Tacos: hide both double and half (maxExtras=0, maxHalfs=0)
+            if (isTacos) {
+                doubleToggle.style.display = 'none';
+                halfToggle.style.display = 'none';
+                // If double or half was selected, switch to normal
+                if (!document.getElementById('proteinNormal').checked) {
+                    document.getElementById('proteinNormal').checked = true;
+                    updateSecondProteinVisibility();
+                }
+                return;
+            }
+
+            // Quesadilla: hide double (maxExtras=0), show half (maxHalfs=1)
+            if (isQuesadilla) {
+                doubleToggle.style.display = 'none';
+                halfToggle.style.display = 'block';
+                // If double was selected, switch to normal
+                if (document.getElementById('proteinDouble').checked) {
+                    document.getElementById('proteinNormal').checked = true;
+                    updateSecondProteinVisibility();
+                }
+            } else {
+                doubleToggle.style.display = 'block';
+                halfToggle.style.display = 'block';
+            }
+        }
+
+        // Show/hide quesadilla-specific UI
+        function updateQuesadillaUI() {
+            const isQuesadilla = selectedEntree === 'quesadilla';
+            const isTacos = selectedEntree === 'tacos';
+            const quesadillaSidesSection = document.getElementById('quesadillaSidesSection');
+            const riceSection = document.getElementById('riceSection');
+            const beansSection = document.getElementById('beansSection');
+            const toppingsHeader = document.getElementById('toppingsHeader');
+
+            if (quesadillaSidesSection) {
+                quesadillaSidesSection.style.display = isQuesadilla ? 'block' : 'none';
+            }
+            // Hide rice/beans for quesadillas AND tacos
+            if (riceSection) {
+                riceSection.style.display = (isQuesadilla || isTacos) ? 'none' : 'block';
+            }
+            if (beansSection) {
+                beansSection.style.display = (isQuesadilla || isTacos) ? 'none' : 'block';
+            }
+
+            // Show/hide toppings based on quesadilla selection
+            // For quesadillas: only guac and queso (data-quesadilla="true") are allowed
+            document.querySelectorAll('#toppings .topping-item').forEach(item => {
+                const isQuesadillaAllowed = item.dataset.quesadilla === 'true';
+                if (isQuesadilla) {
+                    // Hide non-quesadilla toppings, uncheck them
+                    if (!isQuesadillaAllowed) {
+                        item.style.display = 'none';
+                        item.querySelector('input[type="checkbox"]').checked = false;
+                        const select = item.querySelector('select');
+                        if (select) select.value = '';
+                    } else {
+                        item.style.display = 'flex';
+                    }
+                } else if (!isTacos) {
+                    // Show all toppings for non-quesadillas and non-tacos
+                    item.style.display = 'flex';
+                }
+            });
+
+            // Update toppings header for quesadillas
+            if (toppingsHeader && !isTacos) {
+                toppingsHeader.textContent = isQuesadilla ? 'Add-ons (+$)' : 'Toppings';
+            }
+
+            // Reset quesadilla sides when switching away
+            if (!isQuesadilla && quesadillaSidesSection) {
+                document.querySelectorAll('#quesadillaSides input[type="checkbox"]').forEach(el => {
+                    el.checked = false;
+                    el.disabled = false;
+                    el.parentElement.style.opacity = '1';
+                });
+                updateDipCount();
+            }
+        }
+
+        // Show/hide taco-specific UI
+        function updateTacoUI() {
+            const isTacos = selectedEntree === 'tacos';
+            const tacoSection = document.getElementById('tacoSection');
+            const toppingsHeader = document.getElementById('toppingsHeader');
+            const toppingsGrid = document.getElementById('toppings');
+
+            if (tacoSection) {
+                tacoSection.style.display = isTacos ? 'block' : 'none';
+            }
+
+            // For tacos: hide normal toppings section except guac/queso (premium add-ons)
+            if (isTacos) {
+                // Hide all toppings except guac and queso
+                document.querySelectorAll('#toppings .topping-item').forEach(item => {
+                    const isAddOn = item.dataset.quesadilla === 'true'; // guac and queso have this
+                    if (!isAddOn) {
+                        item.style.display = 'none';
+                        item.querySelector('input[type="checkbox"]').checked = false;
+                        const select = item.querySelector('select');
+                        if (select) select.value = '';
+                    } else {
+                        item.style.display = 'flex';
+                    }
+                });
+                if (toppingsHeader) {
+                    toppingsHeader.textContent = 'Add-ons (+$)';
+                }
+            }
+
+            // Reset taco selections when switching away
+            if (!isTacos && tacoSection) {
+                // Reset tortilla selection
+                document.querySelectorAll('#tortillaOptions .option-btn').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                selectedTortilla = null;
+
+                // Reset taco toppings
+                document.querySelectorAll('#tacoToppings input[type="checkbox"]').forEach(el => {
+                    el.checked = false;
+                    el.disabled = false;
+                    el.parentElement.style.opacity = '1';
+                });
+                updateTacoToppingCount();
+            }
+        }
+
+        // Update taco topping count and disable checkboxes when limit reached
+        function updateTacoToppingCount() {
+            const checkboxes = document.querySelectorAll('#tacoToppings input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+            // Update counter
+            const counter = document.getElementById('tacoToppingCounter');
+            if (counter) {
+                counter.textContent = `(${checkedCount}/5 selected, min 1)`;
+                if (checkedCount >= 5) {
+                    counter.style.color = '#e74c3c';
+                } else if (checkedCount >= 1) {
+                    counter.style.color = '#7ac47a';
+                } else {
+                    counter.style.color = '#888';
+                }
+            }
+
+            // Disable unchecked boxes when limit reached
+            checkboxes.forEach(cb => {
+                if (!cb.checked) {
+                    cb.disabled = checkedCount >= 5;
+                    cb.parentElement.style.opacity = checkedCount >= 5 ? '0.5' : '1';
+                }
+            });
+        }
+
+        // Toggle half & half rice mode
+        function toggleHalfRice() {
+            const isHalf = document.getElementById('halfHalfRice').checked;
+            document.getElementById('riceNormalOptions').style.display = isHalf ? 'none' : 'flex';
+            document.getElementById('riceHalfOptions').style.display = isHalf ? 'block' : 'none';
+            document.getElementById('riceModifiers').style.display = isHalf ? 'none' : 'block';
+
+            if (!isHalf) {
+                // Reset half selections
+                selectedRiceHalf = [];
+                document.querySelectorAll('#riceHalfOptions .option-btn-multi').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            } else {
+                // Reset normal selection
+                selectedRice = null;
+                document.querySelectorAll('#riceNormalOptions .option-btn').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                document.getElementById('lightRice').checked = false;
+                document.getElementById('extraRice').checked = false;
+            }
+        }
+
+        // Toggle half & half beans mode
+        function toggleHalfBeans() {
+            const isHalf = document.getElementById('halfHalfBeans').checked;
+            document.getElementById('beansNormalOptions').style.display = isHalf ? 'none' : 'flex';
+            document.getElementById('beansHalfOptions').style.display = isHalf ? 'block' : 'none';
+            document.getElementById('beansModifiers').style.display = isHalf ? 'none' : 'block';
+
+            if (!isHalf) {
+                // Reset half selections
+                selectedBeansHalf = [];
+                document.querySelectorAll('#beansHalfOptions .option-btn-multi').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            } else {
+                // Reset normal selection
+                selectedBeans = null;
+                document.querySelectorAll('#beansNormalOptions .option-btn').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                document.getElementById('lightBeans').checked = false;
+                document.getElementById('extraBeans').checked = false;
+            }
+        }
+
+        // Toggle rice half selection (max 2)
+        function toggleRiceHalfSelection(el) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                selectedRiceHalf = selectedRiceHalf.filter(item => item.id !== el.dataset.id);
+            } else if (selectedRiceHalf.length < 2) {
+                el.classList.add('selected');
+                selectedRiceHalf.push({ id: el.dataset.id, name: el.dataset.name });
+            }
+        }
+
+        // Toggle beans half selection (max 2)
+        function toggleBeansHalfSelection(el) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                selectedBeansHalf = selectedBeansHalf.filter(item => item.id !== el.dataset.id);
+            } else if (selectedBeansHalf.length < 2) {
+                el.classList.add('selected');
+                selectedBeansHalf.push({ id: el.dataset.id, name: el.dataset.name });
+            }
+        }
+
+        // Update dip count and disable checkboxes when limit reached
+        function updateDipCount() {
+            const checkboxes = document.querySelectorAll('#quesadillaSides input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+            // Update counter
+            const counter = document.getElementById('dipCounter');
+            if (counter) {
+                counter.textContent = `(${checkedCount}/3 selected)`;
+                counter.style.color = checkedCount >= 3 ? '#e74c3c' : '#888';
+            }
+
+            // Disable unchecked boxes when limit reached
+            checkboxes.forEach(cb => {
+                if (!cb.checked) {
+                    cb.disabled = checkedCount >= 3;
+                    cb.parentElement.style.opacity = checkedCount >= 3 ? '0.5' : '1';
+                }
+            });
+        }
 
         function buildContents() {
             const contents = [];
+            const proteinOption = document.querySelector('input[name="proteinOption"]:checked')?.value || 'normal';
 
-            // Double protein (not available for Veggie)
-            if (document.getElementById('doubleProtein').checked && selectedProtein && extraProteinIds[selectedProtein]) {
+            // Handle protein options
+            if (proteinOption === 'double' && selectedProtein && extraProteinIds[selectedProtein]) {
+                // Double protein (extra of same meat)
                 const extraName = selectedProtein === 'Barbacoa' ? 'Extra Beef Barbacoa' : `Extra ${selectedProtein}`;
                 contents.push({
                     menuItemId: extraProteinIds[selectedProtein],
                     menuItemName: extraName,
                     quantity: 1, isUpSell: false, customizationId: null
                 });
-            }
-
-            // Rice (always add, including "No Rice" CMG-5003)
-            if (selectedRice) {
+            } else if (proteinOption === 'half' && selectedSecondProtein && halfPortionIds[selectedSecondProtein]) {
+                // Half & half protein (add second protein as half portion)
                 contents.push({
-                    menuItemId: selectedRice.id,
-                    menuItemName: selectedRice.name,
-                    quantity: 1, isUpSell: false,
-                    customizationId: (selectedRice.id !== 'CMG-5003' && document.getElementById('extraRice').checked) ? 2 : null
+                    menuItemId: halfPortionIds[selectedSecondProtein],
+                    menuItemName: halfPortionNames[selectedSecondProtein],
+                    quantity: 1, isUpSell: false, customizationId: null
                 });
             }
 
-            // Beans (don't apply Extra to "No Beans")
-            if (selectedBeans) {
-                contents.push({
-                    menuItemId: selectedBeans.id,
-                    menuItemName: selectedBeans.name,
-                    quantity: 1, isUpSell: false,
-                    customizationId: (selectedBeans.id !== 'CMG-5053' && document.getElementById('extraBeans').checked) ? 2 : null
+            // For quesadillas, use dip content group items
+            if (selectedEntree === 'quesadilla') {
+                // Add selected quesadilla sides (no customization for quesadilla sides)
+                document.querySelectorAll('#quesadillaSides input[type="checkbox"]:checked').forEach(cb => {
+                    contents.push({
+                        menuItemId: cb.dataset.id,
+                        menuItemName: cb.dataset.name,
+                        quantity: 1, isUpSell: false, customizationId: null
+                    });
                 });
+            } else if (selectedEntree === 'tacos') {
+                // For tacos: add tortilla (required) and taco toppings
+                if (selectedTortilla) {
+                    contents.push({
+                        menuItemId: selectedTortilla.id,
+                        menuItemName: selectedTortilla.name,
+                        quantity: 1, isUpSell: false, customizationId: null
+                    });
+                }
+                // Add selected taco toppings (no customization)
+                document.querySelectorAll('#tacoToppings input[type="checkbox"]:checked').forEach(cb => {
+                    contents.push({
+                        menuItemId: cb.dataset.id,
+                        menuItemName: cb.dataset.name,
+                        quantity: 1, isUpSell: false, customizationId: null
+                    });
+                });
+            } else {
+                // For non-quesadillas: handle rice and beans
+
+                // Check if using half & half rice
+                const isHalfRice = document.getElementById('halfHalfRice')?.checked;
+                if (isHalfRice && selectedRiceHalf.length > 0) {
+                    // Add each selected half rice with customizationId: 4 (Half)
+                    selectedRiceHalf.forEach(rice => {
+                        contents.push({
+                            menuItemId: rice.id,
+                            menuItemName: rice.name,
+                            quantity: 1, isUpSell: false,
+                            customizationId: 4  // "Half" customization
+                        });
+                    });
+                } else if (selectedRice) {
+                    // Standard single rice
+                    let riceCustomization = null;
+                    if (selectedRice.id !== 'CMG-5003') {
+                        if (document.getElementById('lightRice').checked) riceCustomization = 1;
+                        else if (document.getElementById('extraRice').checked) riceCustomization = 2;
+                    }
+                    contents.push({
+                        menuItemId: selectedRice.id,
+                        menuItemName: selectedRice.name,
+                        quantity: 1, isUpSell: false,
+                        customizationId: riceCustomization
+                    });
+                }
+
+                // Check if using half & half beans
+                const isHalfBeans = document.getElementById('halfHalfBeans')?.checked;
+                if (isHalfBeans && selectedBeansHalf.length > 0) {
+                    // Add each selected half beans with customizationId: 4 (Half)
+                    selectedBeansHalf.forEach(beans => {
+                        contents.push({
+                            menuItemId: beans.id,
+                            menuItemName: beans.name,
+                            quantity: 1, isUpSell: false,
+                            customizationId: 4  // "Half" customization
+                        });
+                    });
+                } else if (selectedBeans) {
+                    // Standard single beans
+                    let beansCustomization = null;
+                    if (selectedBeans.id !== 'CMG-5053') {
+                        if (document.getElementById('lightBeans').checked) beansCustomization = 1;
+                        else if (document.getElementById('extraBeans').checked) beansCustomization = 2;
+                    }
+                    contents.push({
+                        menuItemId: selectedBeans.id,
+                        menuItemName: selectedBeans.name,
+                        quantity: 1, isUpSell: false,
+                        customizationId: beansCustomization
+                    });
+                }
             }
 
-            // Toppings
+            // Toppings (for non-quesadillas, or addon toppings for quesadillas)
             document.querySelectorAll('#toppings .topping-item').forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
                 if (checkbox.checked) {
                     const select = item.querySelector('select');
                     let itemId = checkbox.dataset.id;
-                    let customization = select.value ? parseInt(select.value) : null;
+                    let customization = select && select.value ? parseInt(select.value) : null;
 
                     // Queso Blanco: use CMG-4134 for Quesadilla (Addon type, no customization)
                     if (checkbox.id === 'top-queso' && selectedEntree === 'quesadilla') {
@@ -815,9 +1498,43 @@
                 return;
             }
 
-            if (!selectedEntree || !selectedProtein || !selectedRice || !selectedBeans) {
-                alert('Please select entree type, protein, rice, and beans');
-                return;
+            const proteinOption = document.querySelector('input[name="proteinOption"]:checked')?.value || 'normal';
+            const isHalfRice = document.getElementById('halfHalfRice')?.checked;
+            const isHalfBeans = document.getElementById('halfHalfBeans')?.checked;
+
+            // Validation differs for quesadillas and tacos
+            if (selectedEntree === 'quesadilla') {
+                if (!selectedProtein) {
+                    alert('Please select a protein');
+                    return;
+                }
+            } else if (selectedEntree === 'tacos') {
+                // Tacos require: protein, tortilla, and 1-5 toppings
+                if (!selectedProtein) {
+                    alert('Please select a protein');
+                    return;
+                }
+                if (!selectedTortilla) {
+                    alert('Please select a tortilla type');
+                    return;
+                }
+                const tacoToppingCount = document.querySelectorAll('#tacoToppings input[type="checkbox"]:checked').length;
+                if (tacoToppingCount < 1) {
+                    alert('Please select at least 1 topping for your tacos');
+                    return;
+                }
+                if (tacoToppingCount > 5) {
+                    alert('Maximum 5 toppings allowed for tacos');
+                    return;
+                }
+            } else {
+                // For non-quesadillas and non-tacos, require rice and beans (unless half mode)
+                const hasRice = isHalfRice ? selectedRiceHalf.length > 0 : selectedRice;
+                const hasBeans = isHalfBeans ? selectedBeansHalf.length > 0 : selectedBeans;
+                if (!selectedEntree || !selectedProtein || !hasRice || !hasBeans) {
+                    alert('Please select entree type, protein, rice, and beans');
+                    return;
+                }
             }
 
             // Veggie Quesadilla doesn't exist
@@ -826,21 +1543,35 @@
                 return;
             }
 
-            // Warn if trying to double Veggie (not available)
-            if (selectedProtein === 'Veggie' && document.getElementById('doubleProtein').checked) {
-                alert('Double Protein is not available for Veggie. The order will be added without double protein.');
-                document.getElementById('doubleProtein').checked = false;
+            // Warn if trying to double/half Veggie (not available)
+            if (selectedProtein === 'Veggie' && proteinOption !== 'normal') {
+                alert('Double/Half Protein is not available for Veggie. The order will be added as standard.');
+                document.getElementById('proteinNormal').checked = true;
             }
 
-            // Double Protein is not available for Quesadillas
-            if (selectedEntree === 'quesadilla' && document.getElementById('doubleProtein').checked) {
+            // Double Protein is not available for Quesadillas (but half is allowed)
+            if (selectedEntree === 'quesadilla' && proteinOption === 'double') {
                 alert('Double Protein is not available for Quesadillas. The order will be added without double protein.');
-                document.getElementById('doubleProtein').checked = false;
+                document.getElementById('proteinNormal').checked = true;
+            }
+
+            // No double/half protein for tacos
+            if (selectedEntree === 'tacos' && proteinOption !== 'normal') {
+                document.getElementById('proteinNormal').checked = true;
+            }
+
+            // Half & half validation
+            if (proteinOption === 'half' && !selectedSecondProtein) {
+                alert('Please select a second protein for half & half');
+                return;
             }
 
             const orderName = document.getElementById('orderName').value.trim() || 'Customer';
             const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
-            const entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            let entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            if (selectedEntree === 'tacos') {
+                entreeName = `${proteinName} Tacos (3)`;
+            }
             const order = {
                 id: orderIdCounter++,
                 qty: 1,
@@ -850,7 +1581,8 @@
                 entreeName: entreeName,
                 menuItemId: menuIds[selectedEntree][selectedProtein],
                 contents: buildContents(),
-                doubleProtein: document.getElementById('doubleProtein').checked,
+                proteinOption: proteinOption,
+                secondProtein: selectedSecondProtein,
                 description: buildDescription()
             };
 
@@ -890,37 +1622,133 @@
             });
             selectedEntree = order.entreeType;
 
+            // Update UI for quesadilla/tacos vs others
+            updateQuesadillaUI();
+            updateTacoUI();
+
             // Select protein
             document.querySelectorAll('#proteinOptions .option-btn').forEach(el => {
                 el.classList.toggle('selected', el.dataset.name === order.protein);
             });
             selectedProtein = order.protein;
 
-            // Set double protein
-            document.getElementById('doubleProtein').checked = order.doubleProtein;
+            // Handle protein options (normal, double, half)
+            const halfItem = order.contents.find(c => Object.values(halfPortionIds).includes(c.menuItemId));
+            const extraItem = order.contents.find(c => Object.values(extraProteinIds).includes(c.menuItemId));
 
-            // Find rice and beans from contents
-            const riceItem = order.contents.find(c => ['CMG-5001', 'CMG-5002', 'CMG-5003'].includes(c.menuItemId));
-            const beansItem = order.contents.find(c => ['CMG-5051', 'CMG-5052', 'CMG-5053'].includes(c.menuItemId));
-
-            // Select rice
-            if (riceItem) {
-                document.querySelectorAll('#riceOptions .option-btn').forEach(el => {
-                    const isSelected = el.dataset.id === riceItem.menuItemId;
-                    el.classList.toggle('selected', isSelected);
-                    if (isSelected) selectedRice = { id: el.dataset.id, name: el.dataset.name };
-                });
-                document.getElementById('extraRice').checked = riceItem.customizationId === 2;
+            if (halfItem) {
+                // Half & half protein
+                document.getElementById('proteinHalf').checked = true;
+                document.getElementById('secondProteinSection').style.display = 'block';
+                // Find the second protein name
+                for (const [proteinName, itemId] of Object.entries(halfPortionIds)) {
+                    if (itemId === halfItem.menuItemId) {
+                        document.querySelectorAll('#secondProteinOptions .option-btn').forEach(el => {
+                            el.classList.toggle('selected', el.dataset.name === proteinName);
+                        });
+                        selectedSecondProtein = proteinName;
+                        break;
+                    }
+                }
+            } else if (extraItem) {
+                // Double protein
+                document.getElementById('proteinDouble').checked = true;
+                document.getElementById('secondProteinSection').style.display = 'none';
+                selectedSecondProtein = null;
+            } else {
+                // Standard protein
+                document.getElementById('proteinNormal').checked = true;
+                document.getElementById('secondProteinSection').style.display = 'none';
+                selectedSecondProtein = null;
             }
 
-            // Select beans
-            if (beansItem) {
-                document.querySelectorAll('#beanOptions .option-btn').forEach(el => {
-                    const isSelected = el.dataset.id === beansItem.menuItemId;
-                    el.classList.toggle('selected', isSelected);
-                    if (isSelected) selectedBeans = { id: el.dataset.id, name: el.dataset.name };
+            updateProteinOptionsVisibility();
+
+            // Handle quesadilla sides
+            if (order.entreeType === 'quesadilla') {
+                const dipItemIds = ['CMG-5201', 'CMG-5202', 'CMG-5203', 'CMG-5204',
+                                    'CMG-5251', 'CMG-5354', 'CMG-5001', 'CMG-5002',
+                                    'CMG-5051', 'CMG-5052'];
+                document.querySelectorAll('#quesadillaSides input[type="checkbox"]').forEach(cb => {
+                    const isInContents = order.contents.some(c => c.menuItemId === cb.dataset.id);
+                    cb.checked = isInContents;
                 });
-                document.getElementById('extraBeans').checked = beansItem.customizationId === 2;
+                updateDipCount();
+            } else if (order.entreeType === 'tacos') {
+                // Restore tortilla selection
+                const tortillaItem = order.contents.find(c => ['CMG-5501', 'CMG-5503'].includes(c.menuItemId));
+                if (tortillaItem) {
+                    document.querySelectorAll('#tortillaOptions .option-btn').forEach(el => {
+                        const isSelected = el.dataset.id === tortillaItem.menuItemId;
+                        el.classList.toggle('selected', isSelected);
+                        if (isSelected) selectedTortilla = { id: el.dataset.id, name: el.dataset.name };
+                    });
+                }
+                // Restore taco toppings
+                const tacoToppingIds = ['CMG-5201', 'CMG-5202', 'CMG-5203', 'CMG-5204',
+                                        'CMG-5251', 'CMG-5252', 'CMG-5351', 'CMG-5101',
+                                        'CMG-5001', 'CMG-5002', 'CMG-5051', 'CMG-5052'];
+                document.querySelectorAll('#tacoToppings input[type="checkbox"]').forEach(cb => {
+                    const isInContents = order.contents.some(c => c.menuItemId === cb.dataset.id);
+                    cb.checked = isInContents;
+                });
+                updateTacoToppingCount();
+            } else {
+                // Find rice items (could be half & half)
+                const riceItems = order.contents.filter(c => ['CMG-5001', 'CMG-5002', 'CMG-5003'].includes(c.menuItemId));
+                const halfRiceItems = riceItems.filter(r => r.customizationId === 4);
+
+                if (halfRiceItems.length >= 2) {
+                    // Half & half rice
+                    document.getElementById('halfHalfRice').checked = true;
+                    toggleHalfRice();
+                    selectedRiceHalf = halfRiceItems.map(r => ({ id: r.menuItemId, name: r.menuItemName }));
+                    document.querySelectorAll('#riceHalfOptions .option-btn-multi').forEach(el => {
+                        el.classList.toggle('selected', halfRiceItems.some(r => r.menuItemId === el.dataset.id));
+                    });
+                } else if (riceItems.length > 0) {
+                    // Single rice
+                    const riceItem = riceItems[0];
+                    document.getElementById('halfHalfRice').checked = false;
+                    document.getElementById('riceNormalOptions').style.display = 'flex';
+                    document.getElementById('riceHalfOptions').style.display = 'none';
+                    document.getElementById('riceModifiers').style.display = 'block';
+                    document.querySelectorAll('#riceNormalOptions .option-btn').forEach(el => {
+                        const isSelected = el.dataset.id === riceItem.menuItemId;
+                        el.classList.toggle('selected', isSelected);
+                        if (isSelected) selectedRice = { id: el.dataset.id, name: el.dataset.name };
+                    });
+                    document.getElementById('lightRice').checked = riceItem.customizationId === 1;
+                    document.getElementById('extraRice').checked = riceItem.customizationId === 2;
+                }
+
+                // Find beans items (could be half & half)
+                const beansItems = order.contents.filter(c => ['CMG-5051', 'CMG-5052', 'CMG-5053'].includes(c.menuItemId));
+                const halfBeansItems = beansItems.filter(b => b.customizationId === 4);
+
+                if (halfBeansItems.length >= 2) {
+                    // Half & half beans
+                    document.getElementById('halfHalfBeans').checked = true;
+                    toggleHalfBeans();
+                    selectedBeansHalf = halfBeansItems.map(b => ({ id: b.menuItemId, name: b.menuItemName }));
+                    document.querySelectorAll('#beansHalfOptions .option-btn-multi').forEach(el => {
+                        el.classList.toggle('selected', halfBeansItems.some(b => b.menuItemId === el.dataset.id));
+                    });
+                } else if (beansItems.length > 0) {
+                    // Single beans
+                    const beansItem = beansItems[0];
+                    document.getElementById('halfHalfBeans').checked = false;
+                    document.getElementById('beansNormalOptions').style.display = 'flex';
+                    document.getElementById('beansHalfOptions').style.display = 'none';
+                    document.getElementById('beansModifiers').style.display = 'block';
+                    document.querySelectorAll('#beansNormalOptions .option-btn').forEach(el => {
+                        const isSelected = el.dataset.id === beansItem.menuItemId;
+                        el.classList.toggle('selected', isSelected);
+                        if (isSelected) selectedBeans = { id: el.dataset.id, name: el.dataset.name };
+                    });
+                    document.getElementById('lightBeans').checked = beansItem.customizationId === 1;
+                    document.getElementById('extraBeans').checked = beansItem.customizationId === 2;
+                }
             }
 
             // Set toppings
@@ -936,9 +1764,9 @@
                 );
 
                 checkbox.checked = !!contentItem;
-                if (contentItem && contentItem.customizationId) {
+                if (contentItem && contentItem.customizationId && select) {
                     select.value = contentItem.customizationId.toString();
-                } else {
+                } else if (select) {
                     select.value = '';
                 }
             });
@@ -955,9 +1783,41 @@
         function updateOrder() {
             if (!editingOrder) return;
 
-            if (!selectedEntree || !selectedProtein || !selectedRice || !selectedBeans) {
-                alert('Please select entree type, protein, rice, and beans');
-                return;
+            const proteinOption = document.querySelector('input[name="proteinOption"]:checked')?.value || 'normal';
+            const isHalfRice = document.getElementById('halfHalfRice')?.checked;
+            const isHalfBeans = document.getElementById('halfHalfBeans')?.checked;
+
+            // Validation differs for quesadillas and tacos
+            if (selectedEntree === 'quesadilla') {
+                if (!selectedProtein) {
+                    alert('Please select a protein');
+                    return;
+                }
+            } else if (selectedEntree === 'tacos') {
+                if (!selectedProtein) {
+                    alert('Please select a protein');
+                    return;
+                }
+                if (!selectedTortilla) {
+                    alert('Please select a tortilla type');
+                    return;
+                }
+                const tacoToppingCount = document.querySelectorAll('#tacoToppings input[type="checkbox"]:checked').length;
+                if (tacoToppingCount < 1) {
+                    alert('Please select at least 1 topping for your tacos');
+                    return;
+                }
+                if (tacoToppingCount > 5) {
+                    alert('Maximum 5 toppings allowed for tacos');
+                    return;
+                }
+            } else {
+                const hasRice = isHalfRice ? selectedRiceHalf.length > 0 : selectedRice;
+                const hasBeans = isHalfBeans ? selectedBeansHalf.length > 0 : selectedBeans;
+                if (!selectedEntree || !selectedProtein || !hasRice || !hasBeans) {
+                    alert('Please select entree type, protein, rice, and beans');
+                    return;
+                }
             }
 
             if (selectedEntree === 'quesadilla' && selectedProtein === 'Veggie') {
@@ -965,14 +1825,25 @@
                 return;
             }
 
-            if (selectedProtein === 'Veggie' && document.getElementById('doubleProtein').checked) {
-                document.getElementById('doubleProtein').checked = false;
+            if (selectedProtein === 'Veggie' && proteinOption !== 'normal') {
+                document.getElementById('proteinNormal').checked = true;
             }
 
-            // Double Protein is not available for Quesadillas
-            if (selectedEntree === 'quesadilla' && document.getElementById('doubleProtein').checked) {
+            // Double Protein is not available for Quesadillas (but half is allowed)
+            if (selectedEntree === 'quesadilla' && proteinOption === 'double') {
                 alert('Double Protein is not available for Quesadillas. The order will be updated without double protein.');
-                document.getElementById('doubleProtein').checked = false;
+                document.getElementById('proteinNormal').checked = true;
+            }
+
+            // No double/half protein for tacos
+            if (selectedEntree === 'tacos' && proteinOption !== 'normal') {
+                document.getElementById('proteinNormal').checked = true;
+            }
+
+            // Half & half validation
+            if (proteinOption === 'half' && !selectedSecondProtein) {
+                alert('Please select a second protein for half & half');
+                return;
             }
 
             const group = groups.find(g => g.id === editingOrder.groupId);
@@ -985,10 +1856,15 @@
             order.entreeType = selectedEntree;
             order.protein = selectedProtein;
             const proteinName = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
-            order.entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            let entreeName = `${proteinName} ${selectedEntree.charAt(0).toUpperCase() + selectedEntree.slice(1)}`;
+            if (selectedEntree === 'tacos') {
+                entreeName = `${proteinName} Tacos (3)`;
+            }
+            order.entreeName = entreeName;
             order.menuItemId = menuIds[selectedEntree][selectedProtein];
             order.contents = buildContents();
-            order.doubleProtein = document.getElementById('doubleProtein').checked;
+            order.proteinOption = proteinOption;
+            order.secondProtein = selectedSecondProtein;
             order.description = buildDescription();
 
             cancelEdit();
@@ -1027,30 +1903,75 @@
         function buildDescription() {
             let parts = [];
             const displayProtein = selectedProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedProtein;
-            if (document.getElementById('doubleProtein').checked) parts.push('Double ' + displayProtein);
-            else parts.push(displayProtein);
+            const proteinOption = document.querySelector('input[name="proteinOption"]:checked')?.value || 'normal';
 
-            if (selectedRice && selectedRice.id !== 'CMG-5003') {
-                let r = selectedRice.name.replace(' Rice', '');
-                if (document.getElementById('extraRice').checked) r = 'Extra ' + r;
-                parts.push(r);
+            // Protein description
+            if (proteinOption === 'double') {
+                parts.push('Double ' + displayProtein);
+            } else if (proteinOption === 'half' && selectedSecondProtein) {
+                const displaySecond = selectedSecondProtein === 'Barbacoa' ? 'Beef Barbacoa' : selectedSecondProtein;
+                parts.push(`Half ${displayProtein} + Half ${displaySecond}`);
+            } else {
+                parts.push(displayProtein);
             }
 
-            if (selectedBeans && selectedBeans.id !== 'CMG-5053') {
-                let b = selectedBeans.name.replace(' Beans', '');
-                if (document.getElementById('extraBeans').checked) b = 'Extra ' + b;
-                parts.push(b);
+            // For quesadillas, show selected sides
+            if (selectedEntree === 'quesadilla') {
+                const sides = [];
+                document.querySelectorAll('#quesadillaSides input[type="checkbox"]:checked').forEach(cb => {
+                    sides.push(cb.parentElement.querySelector('label').textContent);
+                });
+                if (sides.length > 0) {
+                    parts.push('Sides: ' + sides.join(', '));
+                }
+            } else if (selectedEntree === 'tacos') {
+                // For tacos, show tortilla and toppings
+                if (selectedTortilla) {
+                    parts.push(selectedTortilla.name.replace(' Tortilla', ''));
+                }
+                const toppings = [];
+                document.querySelectorAll('#tacoToppings input[type="checkbox"]:checked').forEach(cb => {
+                    toppings.push(cb.parentElement.querySelector('label').textContent);
+                });
+                if (toppings.length > 0) {
+                    parts.push(toppings.join(', '));
+                }
+            } else {
+                // Rice description
+                const isHalfRice = document.getElementById('halfHalfRice')?.checked;
+                if (isHalfRice && selectedRiceHalf.length > 0) {
+                    const riceNames = selectedRiceHalf.map(r => 'Half ' + r.name.replace(' Rice', '')).join(' + ');
+                    parts.push(riceNames);
+                } else if (selectedRice && selectedRice.id !== 'CMG-5003') {
+                    let r = selectedRice.name.replace(' Rice', '');
+                    if (document.getElementById('lightRice').checked) r = 'Light ' + r;
+                    else if (document.getElementById('extraRice').checked) r = 'Extra ' + r;
+                    parts.push(r);
+                }
+
+                // Beans description
+                const isHalfBeans = document.getElementById('halfHalfBeans')?.checked;
+                if (isHalfBeans && selectedBeansHalf.length > 0) {
+                    const beansNames = selectedBeansHalf.map(b => 'Half ' + b.name.replace(' Beans', '')).join(' + ');
+                    parts.push(beansNames);
+                } else if (selectedBeans && selectedBeans.id !== 'CMG-5053') {
+                    let b = selectedBeans.name.replace(' Beans', '');
+                    if (document.getElementById('lightBeans').checked) b = 'Light ' + b;
+                    else if (document.getElementById('extraBeans').checked) b = 'Extra ' + b;
+                    parts.push(b);
+                }
             }
 
+            // Toppings
             document.querySelectorAll('#toppings .topping-item').forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
                 if (checkbox.checked) {
                     const label = item.querySelector('label').textContent;
                     const select = item.querySelector('select');
                     let mod = '';
-                    if (select.value === '1') mod = 'Light ';
-                    if (select.value === '2') mod = 'Extra ';
-                    if (select.value === '3') mod = label + ' (Side)';
+                    if (select && select.value === '1') mod = 'Light ';
+                    if (select && select.value === '2') mod = 'Extra ';
+                    if (select && select.value === '3') mod = label + ' (Side)';
                     else mod = mod + label;
                     parts.push(mod);
                 }
@@ -1146,11 +2067,55 @@
         function resetOrderForm() {
             document.querySelectorAll('#entreeOptions .option-btn, #proteinOptions .option-btn').forEach(el => el.classList.remove('selected'));
             document.getElementById('orderName').value = '';
-            document.getElementById('doubleProtein').checked = false;
+
+            // Reset protein options
+            document.getElementById('proteinNormal').checked = true;
+            document.getElementById('secondProteinSection').style.display = 'none';
+            document.querySelectorAll('#secondProteinOptions .option-btn').forEach(el => el.classList.remove('selected'));
+            selectedSecondProtein = null;
+
+            // Reset rice
+            document.getElementById('halfHalfRice').checked = false;
+            document.getElementById('riceNormalOptions').style.display = 'flex';
+            document.getElementById('riceHalfOptions').style.display = 'none';
+            document.getElementById('riceModifiers').style.display = 'block';
+            document.querySelectorAll('#riceHalfOptions .option-btn-multi').forEach(el => el.classList.remove('selected'));
+            selectedRiceHalf = [];
+            document.getElementById('lightRice').checked = false;
             document.getElementById('extraRice').checked = false;
+
+            // Reset beans
+            document.getElementById('halfHalfBeans').checked = false;
+            document.getElementById('beansNormalOptions').style.display = 'flex';
+            document.getElementById('beansHalfOptions').style.display = 'none';
+            document.getElementById('beansModifiers').style.display = 'block';
+            document.querySelectorAll('#beansHalfOptions .option-btn-multi').forEach(el => el.classList.remove('selected'));
+            selectedBeansHalf = [];
+            document.getElementById('lightBeans').checked = false;
             document.getElementById('extraBeans').checked = false;
+
+            // Reset quesadilla sides
+            document.querySelectorAll('#quesadillaSides input[type="checkbox"]').forEach(el => {
+                el.checked = false;
+                el.disabled = false;
+                el.parentElement.style.opacity = '1';
+            });
+            updateDipCount();
+
+            // Reset taco state
+            document.querySelectorAll('#tortillaOptions .option-btn').forEach(el => el.classList.remove('selected'));
+            selectedTortilla = null;
+            document.querySelectorAll('#tacoToppings input[type="checkbox"]').forEach(el => {
+                el.checked = false;
+                el.disabled = false;
+                el.parentElement.style.opacity = '1';
+            });
+            updateTacoToppingCount();
+
+            // Reset toppings
             document.querySelectorAll('#toppings input[type="checkbox"]').forEach(el => el.checked = false);
             document.querySelectorAll('#toppings select').forEach(el => el.value = '');
+
             selectedEntree = null;
             selectedProtein = null;
             // Keep rice and beans selected for convenience
@@ -1203,7 +2168,8 @@
                 const pickupDateTime = (order.groupPickupDate && order.groupPickupTime)
                     ? `${order.groupPickupDate}T${order.groupPickupTime}:00`
                     : '';
-                const phone = order.groupPhone.replace(/\D/g, '');
+                const phone = sanitizePhone(order.groupPhone);
+                const email = sanitizeEmail(order.groupEmail);
 
                 for (let i = 0; i < order.qty; i++) {
                     const orderFirstName = order.orderName;
@@ -1217,7 +2183,7 @@
                         bagPickupLocationId: 1,
                         tipAmount: 0,
                         firstName: orderFirstName,
-                        email: order.groupEmail,
+                        email: email,
                         phoneNumber: phone,
                         meal: {
                             mealName: orderFirstName,
